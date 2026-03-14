@@ -127,7 +127,7 @@
 	    },
 		
 		"TargetSalesOrder": {
-		    "viewName": "salesorder",
+		    "viewName": "SalesOrder",
 		    "viewId": "salesorder",
 		    "viewLevel": 2
 		  }

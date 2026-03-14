@@ -90,7 +90,7 @@
                         valueFormat="yyyy-MM-dd"
                         placeholder="Select delivery date"/>
 
-                    <!-- ✅ NEW: Customer field with F4 Help button -->
+                    <!-- ✅ Customer field with F4 Help button -->
                     <Label text="Customer ID *" />
                     <HBox>
                         <Input id="createCustomerId"
@@ -98,8 +98,8 @@
                             placeholder="Enter customer ID"
                             required="true"
                             width="70%"/>
-                        
-                        <!-- ✅ NEW: F4 Help button -->
+
+                        <!-- ✅ F4 Help button -->
                         <Button icon="sap-icon://value-help"
                             press="onCustomerF4Help"
                             tooltip="Click to select customer (F4)"
@@ -107,33 +107,45 @@
                             class="sapUiSmallMargin"/>
                     </HBox>
 
-                    <!-- ✅ NEW: Display selected customer name -->
+                    <!-- ✅ Display selected customer name -->
                     <Label text="Customer Name" />
                     <Text text="{/createPayload/customer/name}"
                         class="sapUiSmallMargin"/>
 
                     <!-- ── SO ITEM FIELDS ── -->
-                    <core:Title text="Sales Order Item" />
+                    <!-- ✅ NEW: First item is always present, bound to items[0] -->
+                    <core:Title text="Sales Order Item 1" />
 
                     <Label text="Material" />
-                    <Input id="createItemMaterial"
-                        value="{/createPayload/material}"
+                    <Input id="createItemMaterial_0"
+                        value="{/createPayload/items/0/material}"
                         placeholder="Enter material"/>
 
                     <Label text="Quantity" />
-                    <Input id="createItemQuantity"
-                        value="{/createPayload/quantity}"
+                    <Input id="createItemQuantity_0"
+                        value="{/createPayload/items/0/quantity}"
                         placeholder="Enter quantity"
                         type="Number"/>
 
                     <Label text="UOM" />
-                    <Input id="createItemUom"
-                        value="{/createPayload/uom}"
+                    <Input id="createItemUom_0"
+                        value="{/createPayload/items/0/uom}"
                         placeholder="Enter unit of measurement"/>
 
                 </f:content>
 
             </f:SimpleForm>
+
+            <!-- ✅ NEW: Additional item blocks injected here by controller onAddItem -->
+            <VBox id="additionalItemsContainer"/>
+
+            <!-- ✅ NEW: Add Item button — always sits below the last item block -->
+            <Toolbar class="sapUiSmallMargin">
+                <Button text="Add Item"
+                    type="Emphasized"
+                    press="onAddItem"
+                    icon="sap-icon://add"/>
+            </Toolbar>
 
             <Toolbar class="sapUiSmallMargin">
                 <Button text="Save" type="Accept" press="onSaveCombined" icon="sap-icon://save"/>
@@ -186,7 +198,7 @@
                             </t:template>
                         </t:Column>
 
-                        <!-- ✅ NEW: Display Customer Name in table -->
+                        <!-- ✅ Display Customer Name in table -->
                         <t:Column>
                             <Label text="Customer ID"/>
                             <t:template>

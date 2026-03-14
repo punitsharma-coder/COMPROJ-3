@@ -1,6 +1,10 @@
 package com.punit.entities;
 
 import java.time.LocalDate;
+import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+
 import jakarta.persistence.*;
 
 @Entity
@@ -25,10 +29,10 @@ public class SalesOrderHeader {
 	  customer;
 	 
 
-		/*
-		 * @OneToMany(mappedBy = "salesOrderHeader", cascade = CascadeType.ALL) private
-		 * List<SalesOrderItem> items;
-		 */
+	  @JsonManagedReference
+		  @OneToMany(mappedBy = "salesOrderHeader", cascade = CascadeType.ALL) private
+		  List<SalesOrderItem> items;
+		 
 
     public SalesOrderHeader() {
     }

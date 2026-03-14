@@ -1,5 +1,4 @@
 // Developed by PUNIT 06-03-2026
-
 sap.ui.define(
     ["sap/ui/core/mvc/Controller",
      "jquery.sap.global",
@@ -23,9 +22,10 @@ sap.ui.define(
                         "dateOfOrder":      null,
                         "dateOfDelivery":   null,
                         "customer":         { "customerId": null, "name": "" },
-                        "material":         "",
-                        "quantity":         null,
-                        "uom":              ""
+                        // ✅ NEW: items array replaces flat material/quantity/uom fields
+                        "items": [
+                            { "material": "", "quantity": null, "uom": "" }
+                        ]
                     },
 
                     "editItemPayload": {
@@ -198,18 +198,105 @@ sap.ui.define(
                 oModel.setProperty("/showReadPanel",         false);
                 oModel.setProperty("/showUpdatePanel",       false);
                 this.resetAllData();
+                // ✅ NEW: Clear dynamically added item blocks on back
+                this._clearAdditionalItems();
             },
 
             // ─── CREATE ────────────────────────────────────────────
+
+            // ✅ NEW: Adds a new item block below the existing ones
+            onAddItem: function(){
+                var oModel = this.getView().getModel();
+                var items  = oModel.getProperty("/createPayload/items") || [];
+
+                // Push a new empty item into the model array
+                var newIndex = items.length;
+                items.push({ "material": "", "quantity": null, "uom": "" });
+                oModel.setProperty("/createPayload/items", items);
+
+                // Inject the new item block into the VBox container
+                var oContainer = this.getView().byId("additionalItemsContainer");
+                var that       = this;
+
+                var oTitleText = new sap.m.Title({ text: "Sales Order Item " + (newIndex + 1) });
+
+                var oMaterialLabel = new sap.m.Label({ text: "Material" });
+                var oMaterialInput = new sap.m.Input({
+                    id:          "createItemMaterial_" + newIndex,
+                    placeholder: "Enter material",
+                    liveChange:  function(oEvt){
+                        var current = oModel.getProperty("/createPayload/items");
+                        current[newIndex].material = oEvt.getParameter("value");
+                        oModel.setProperty("/createPayload/items", current);
+                    }
+                });
+
+                var oQuantityLabel = new sap.m.Label({ text: "Quantity" });
+                var oQuantityInput = new sap.m.Input({
+                    id:          "createItemQuantity_" + newIndex,
+                    placeholder: "Enter quantity",
+                    type:        "Number",
+                    liveChange:  function(oEvt){
+                        var current = oModel.getProperty("/createPayload/items");
+                        current[newIndex].quantity = oEvt.getParameter("value");
+                        oModel.setProperty("/createPayload/items", current);
+                    }
+                });
+
+                var oUomLabel = new sap.m.Label({ text: "UOM" });
+                var oUomInput = new sap.m.Input({
+                    id:          "createItemUom_" + newIndex,
+                    placeholder: "Enter unit of measurement",
+                    liveChange:  function(oEvt){
+                        var current = oModel.getProperty("/createPayload/items");
+                        current[newIndex].uom = oEvt.getParameter("value");
+                        oModel.setProperty("/createPayload/items", current);
+                    }
+                });
+
+                // Wrap new item fields in a VBox and add to the container
+                var oItemVBox = new sap.m.VBox({
+                    items: [
+                        oTitleText,
+                        oMaterialLabel,  oMaterialInput,
+                        oQuantityLabel,  oQuantityInput,
+                        oUomLabel,       oUomInput
+                    ]
+                });
+
+                oContainer.addItem(oItemVBox);
+            },
+
+            // ✅ NEW: Clears all dynamically added item blocks
+            _clearAdditionalItems: function(){
+                var oContainer = this.getView().byId("additionalItemsContainer");
+                if(oContainer){
+                    oContainer.destroyItems();
+                }
+            },
 
             onSaveCombined: function(){
                 var oModel   = this.getView().getModel();
                 var oPayload = oModel.getProperty("/createPayload");
                 var that     = this;
 
+                // Header validation
                 if(!oPayload.dateOfOrder || !oPayload.customer || !oPayload.customer.customerId){
                     MessageBox.error("Please fill all required fields (Order Date, Customer ID)");
                     return;
+                }
+
+                // ✅ NEW: Item validation — check all items have material and quantity
+                var items = oPayload.items || [];
+                for(var i = 0; i < items.length; i++){
+                    if(!items[i].material || String(items[i].material).trim() === ""){
+                        MessageBox.error("Item " + (i + 1) + ": Material is required.");
+                        return;
+                    }
+                    if(!items[i].quantity){
+                        MessageBox.error("Item " + (i + 1) + ": Quantity is required.");
+                        return;
+                    }
                 }
 
                 var soNumberEntered = oPayload.salesOrderNumber
@@ -223,18 +310,21 @@ sap.ui.define(
                                 MessageBox.error("That SO Number doesn't exist. Please enter a valid SO Number or leave it blank to auto-generate.");
                                 return;
                             }
-                            that._createItemOnly(parseInt(existingHeader.salesOrderNumber), oPayload);
+                            // ✅ CHANGED: call _createAllItems instead of _createItemOnly
+                            that._createAllItems(parseInt(existingHeader.salesOrderNumber), items);
                         })
                         .catch(function(err){
                             MessageBox.error("That SO Number doesn't exist. Please enter a valid SO Number or leave it blank to auto-generate.");
                             console.error(err);
                         });
                 } else {
-                    that._createHeaderThenItem(oPayload);
+                    // ✅ CHANGED: call _createHeaderThenAllItems instead of _createHeaderThenItem
+                    that._createHeaderThenAllItems(oPayload, items);
                 }
             },
 
-            _createHeaderThenItem: function(oPayload){
+            // ✅ CHANGED: was _createHeaderThenItem — now passes items array
+            _createHeaderThenAllItems: function(oPayload, items){
                 var that = this;
                 var headerPayload = {
                     "dateOfOrder":    oPayload.dateOfOrder,
@@ -243,7 +333,7 @@ sap.ui.define(
                 };
                 service.callService("/salesorderheader", "POST", headerPayload)
                     .then(function(headerResponse){
-                        return that._createItemOnly(parseInt(headerResponse.salesOrderNumber), oPayload);
+                        return that._createAllItems(parseInt(headerResponse.salesOrderNumber), items);
                     })
                     .catch(function(err){
                         MessageBox.error("Error: Failed to create Sales Order Header. Please try again.");
@@ -251,25 +341,40 @@ sap.ui.define(
                     });
             },
 
-            _createItemOnly: function(soNumber, oPayload){
-                var that = this;
-                var itemPayload = {
-                    "material": oPayload.material,
-                    "quantity": oPayload.quantity ? parseInt(oPayload.quantity) : null,
-                    "uom":      oPayload.uom,
-                    "salesOrderHeader": { "salesOrderNumber": parseInt(soNumber) }
-                };
-                return service.callService("/salesorderitem", "POST", itemPayload)
-                    .then(function(itemResponse){
+            // ✅ NEW: replaces _createItemOnly — loops through all items sequentially
+            _createAllItems: function(soNumber, items){
+                var that         = this;
+                var createdItems = [];
+
+                // Chain each item POST one after another using reduce
+                var chain = items.reduce(function(promiseChain, item){
+                    return promiseChain.then(function(){
+                        var itemPayload = {
+                            "material":         item.material,
+                            "quantity":         item.quantity ? parseInt(item.quantity) : null,
+                            "uom":              item.uom,
+                            "salesOrderHeader": { "salesOrderNumber": parseInt(soNumber) }
+                        };
+                        return service.callService("/salesorderitem", "POST", itemPayload)
+                            .then(function(itemResponse){
+                                createdItems.push(itemResponse);
+                            });
+                    });
+                }, Promise.resolve());
+
+                return chain
+                    .then(function(){
+                        var itemNumbers = createdItems.map(function(i){ return i.itemNumber; }).join(", ");
                         MessageBox.success(
                             "Sales Order created successfully!\n" +
-                            "SO Number: "  + soNumber + "\n" +
-                            "Item No: "    + (itemResponse.itemNumber || "")
+                            "SO Number: "       + soNumber + "\n" +
+                            "Items Created: "   + createdItems.length + "\n" +
+                            "Item Numbers: "    + itemNumbers
                         );
                         that.onBack();
                     })
                     .catch(function(err){
-                        MessageBox.error("Error: Failed to create SO Item. Please try again.");
+                        MessageBox.error("Error: Failed to create one or more SO Items. Please try again.");
                         console.error(err);
                     });
             },
@@ -385,9 +490,10 @@ sap.ui.define(
                     "dateOfOrder":      null,
                     "dateOfDelivery":   null,
                     "customer":         { "customerId": null, "name": "" },
-                    "material":         "",
-                    "quantity":         null,
-                    "uom":              ""
+                    // ✅ NEW: reset items back to one empty item
+                    "items": [
+                        { "material": "", "quantity": null, "uom": "" }
+                    ]
                 });
                 oModel.setProperty("/editItemPayload", {
                     "itemNumber":       null,

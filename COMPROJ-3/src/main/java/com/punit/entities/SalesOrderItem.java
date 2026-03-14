@@ -1,5 +1,6 @@
-
 package com.punit.entities;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import jakarta.persistence.*;
 
@@ -25,6 +26,7 @@ public class SalesOrderItem {
 
     // ✅ @ManyToOne — multiple items can belong to one SO Header
     //    Was @OneToOne which wrongly blocked more than one item per order
+    @JsonIgnoreProperties("items")
     @ManyToOne
     @JoinColumn(name = "SO_NUMBER", nullable = false)
     private SalesOrderHeader salesOrderHeader;
