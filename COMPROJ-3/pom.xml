@@ -13,7 +13,7 @@
 	<version>0.0.1-SNAPSHOT</version>
 	<packaging>war</packaging>
 	<name>COMPROJ-3</name>
-	<description>PUNIT Management System - Customer, Product, Vendor Management</description>
+	<description>Management System - Customer, Product, Vendor, Sales Order Management</description>
 	<url/>
 	<licenses>
 		<license/>

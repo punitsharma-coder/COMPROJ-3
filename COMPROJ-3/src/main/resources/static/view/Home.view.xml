@@ -38,6 +38,11 @@
  text="SalesOrder Management"
  press="onSalesOrder"
  width="200px"/>
+ 
+ <Button
+ text="PurchaseOrder Management"
+ press="onPurchaseOrder"
+ width="200px" />
 
 </VBox>
 

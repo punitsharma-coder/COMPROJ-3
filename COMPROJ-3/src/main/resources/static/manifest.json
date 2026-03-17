@@ -98,6 +98,11 @@
 		  "name": "RouteSalesOrder",
 		  "pattern": "salesorder",
 		  "target": "TargetSalesOrder"
+		},
+		{
+		  "name": "RoutePurchaseOrder",
+		  "pattern": "purchaseorder",
+		  "target": "TargetPurchaseOrder"
 		}
 	  ],
 
@@ -130,7 +135,13 @@
 		    "viewName": "SalesOrder",
 		    "viewId": "salesorder",
 		    "viewLevel": 2
-		  }
+		  },
+		
+		 "TargetPurchaseOrder": {
+			"viewName": "PurchaseOrder",
+			"viewId": "purchaseorder",
+			"viewlevel": 2
+		 }
 	  }
 	},
     "resourceRoots": {

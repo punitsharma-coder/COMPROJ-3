@@ -1,15 +1,15 @@
-<!-- Developed by Aayush 11-03-2026 -->
+<!-- Developed by Aayush 17-03-2026 -->
 <mvc:View xmlns:mvc="sap.ui.core.mvc"
     xmlns="sap.m"
     xmlns:t="sap.ui.table"
     xmlns:f="sap.ui.layout.form"
     xmlns:l="sap.ui.layout"
     xmlns:core="sap.ui.core"
-    controllerName="punit.controller.SalesOrder">
+    controllerName="punit.controller.PurchaseOrder">
 
-    <Page title="Sales Order Management System" showHeader="true" enableScrolling="true">
+    <Page title="Purchase Order Management System" showHeader="true" enableScrolling="true">
 
-        <!-- OPERATION SELECTION BUTTONS — unchanged -->
+        <!-- OPERATION SELECTION BUTTONS -->
         <Panel expandable="false" headerText="Select Operation"
             class="sapUiLargeMargin sapUiResponsiveMargin"
             visible="{/showOperationSelector}">
@@ -27,8 +27,9 @@
                         icon="sap-icon://search"
                         width="150px"
                         class="sapUiSmallMargin"/>
+                    <!-- ✅ FIX: type="Information" is not valid — changed to Default -->
                     <Button text="Update"
-                        type="Information"
+                        type="Default"
                         press="onSelectUpdate"
                         icon="sap-icon://edit"
                         width="150px"
@@ -38,9 +39,9 @@
         </Panel>
 
         <!-- ═══════════════════════════════════════════ -->
-        <!--                CREATE SECTION               -->
+        <!--              CREATE SECTION                 -->
         <!-- ═══════════════════════════════════════════ -->
-        <Panel expandable="false" headerText="Create New Sales Order"
+        <Panel expandable="false" headerText="Create New Purchase Order"
             class="sapUiLargeMargin sapUiResponsiveMargin"
             visible="{/showCreatePanel}">
 
@@ -57,18 +58,18 @@
                 columnsM="1"
                 singleContainerFullSize="false">
                 <f:content>
-                    <!-- ── SO HEADER FIELDS ── -->
-                    <core:Title text="Sales Order Header" />
 
-                    <Label text="SO Number (optional)" />
-                    <Input id="createSoNumber"
-                        value="{/createPayload/salesOrderNumber}"
-                        placeholder="Leave blank to auto-generate"
-                        type="Number"/>
+                    <core:Title text="PO Header" />
 
+                    <Label text="PO Number (optional)" />
+                    <Input id="createPoNumber"
+                    value="{/createPayload/poId}"
+                    placeholder="Leave blank to auto-generate"
+                    type="Number"/>
+                        
                     <Label text="Order Date *" />
                     <DatePicker id="createOrderDate"
-                        value="{/createPayload/dateOfOrder}"
+                        value="{/createPayload/orderDate}"
                         displayFormat="yyyy-MM-dd"
                         valueFormat="yyyy-MM-dd"
                         placeholder="Select order date"
@@ -76,37 +77,31 @@
 
                     <Label text="Delivery Date" />
                     <DatePicker id="createDeliveryDate"
-                        value="{/createPayload/dateOfDelivery}"
+                        value="{/createPayload/deliveryDate}"
                         displayFormat="yyyy-MM-dd"
                         valueFormat="yyyy-MM-dd"
                         placeholder="Select delivery date"/>
 
-                    <!-- ✅ Customer field with F4 Help button -->
-                    <Label text="Customer ID *" />
+                    <Label text="Vendor ID *" />
                     <HBox>
-                        <Input id="createCustomerId"
-                            value="{/createPayload/customer/customerId}"
-                            placeholder="Enter customer ID"
+                        <Input id="createVendorId"
+                            value="{/createPayload/vendor/vendorId}"
+                            placeholder="Enter Vendor ID"
                             required="true"
                             width="200px"/>
-                        <!-- ✅ F4 Help button -->
+                        <!-- ✅ F4 Help button for Vendor -->
                         <Button icon="sap-icon://value-help"
-                            press="onCustomerF4Help"
-                            tooltip="Click to select customer (F4)"
+                            press="onVendorF4Help"
+                            tooltip="Click to select vendor (F4)"
                             width="auto"
                             class="sapUiSmallMarginBegin"/>
                     </HBox>
 
-<!--                     ✅ Display selected customer name 
-                    <Label text="Customer Name" />
-                    <Text text="{/createPayload/customer/name}"
-                        class="sapUiSmallMargin"/>-->
-
                 </f:content>
             </f:SimpleForm>
 
-            <!-- ✅ CHANGED: SO Items now use an editable table instead of individual label/input blocks -->
-            <Panel expandable="false" headerText="Sales Order Items"
+            <!-- PO Items Table -->
+            <Panel expandable="false" headerText="Purchase Order Items"
                 class="sapUiSmallMargin">
 
                 <t:Table id="createItemsTable"
@@ -121,7 +116,7 @@
                         <t:Column width="33%">
                             <Label text="Material"/>
                             <t:template>
-                                <!-- ✅ Material F4 Help — read-only input + value-help button, same pattern as Customer F4 -->
+                                <!-- ✅ Material F4 Help — read-only input + value-help button -->
                                 <HBox alignItems="Center">
                                     <Input value="{material}"
                                         placeholder="Select material"
@@ -130,7 +125,8 @@
                                     <Button icon="sap-icon://value-help"
                                         press="onMaterialF4Help"
                                         tooltip="Click to select material (F4)"
-                                        width="auto"/>
+                                        width="auto"
+                                        class="sapUiSmallMarginBegin"/>
                                 </HBox>
                             </t:template>
                         </t:Column>
@@ -156,7 +152,6 @@
 
                 </t:Table>
 
-                <!-- ✅ Add Row button — replaces the old Add Item button that was outside the form -->
                 <Toolbar class="sapUiSmallMargin">
                     <Button text="Add Row"
                         type="Emphasized"
@@ -176,9 +171,9 @@
         </Panel>
 
         <!-- ═══════════════════════════════════════════ -->
-        <!--                READ SECTION                 -->
+        <!--               READ SECTION                  -->
         <!-- ═══════════════════════════════════════════ -->
-        <Panel expandable="false" headerText="View All Sales Orders"
+        <Panel expandable="false" headerText="View All Purchase Orders"
             class="sapUiLargeMargin sapUiResponsiveMargin"
             visible="{/showReadPanel}">
 
@@ -189,8 +184,8 @@
                     icon="sap-icon://nav-back"/>
             </Toolbar>
 
-            <!-- SO Header Table -->
-            <Panel expandable="false" headerText="SO Header"
+            <!-- PO Header Table -->
+            <Panel expandable="false" headerText="PO Header"
                 class="sapUiSmallMargin">
                 <t:Table id="idHeaderTable"
                     selectionMode="None"
@@ -198,42 +193,41 @@
                     class="sapUiSmallMargin">
                     <t:columns>
                         <t:Column width="120px">
-                            <Label text="Order No"/>
+                            <Label text="PO ID"/>
                             <t:template>
-                                <Text text="{salesOrderNumber}"/>
+                                <Text text="{poId}"/>
                             </t:template>
                         </t:Column>
                         <t:Column>
                             <Label text="Order Date"/>
                             <t:template>
-                                <Text text="{dateOfOrder}"/>
+                                <Text text="{orderDate}"/>
                             </t:template>
                         </t:Column>
                         <t:Column>
                             <Label text="Delivery Date"/>
                             <t:template>
-                                <Text text="{dateOfDelivery}"/>
-                            </t:template>
-                        </t:Column>
-                        <!-- ✅ Display Customer Name in table -->
-                        <t:Column>
-                            <Label text="Customer ID"/>
-                            <t:template>
-                                <Text text="{customer/customerId}"/>
+                                <Text text="{deliveryDate}"/>
                             </t:template>
                         </t:Column>
                         <t:Column>
-                            <Label text="Customer Name"/>
+                            <Label text="Vendor ID"/>
                             <t:template>
-                                <Text text="{customer/name}"/>
+                                <Text text="{vendor/vendorId}"/>
+                            </t:template>
+                        </t:Column>
+                        <t:Column>
+                            <Label text="Vendor Name"/>
+                            <t:template>
+                                <Text text="{vendor/name}"/>
                             </t:template>
                         </t:Column>
                     </t:columns>
                 </t:Table>
             </Panel>
 
-            <!-- SO Item Table -->
-            <Panel expandable="false" headerText="SO Items"
+            <!-- PO Items Table -->
+            <Panel expandable="false" headerText="PO Items"
                 class="sapUiSmallMargin">
                 <t:Table id="idItemTable"
                     selectionMode="None"
@@ -243,13 +237,15 @@
                         <t:Column width="100px">
                             <Label text="Item No"/>
                             <t:template>
-                                <Text text="{itemNumber}"/>
+                                <!-- ✅ FIX: was {itemNumber} — correct field name is {itemNo} -->
+                                <Text text="{poItemId}"/>
                             </t:template>
                         </t:Column>
                         <t:Column width="120px">
-                            <Label text="SO Number"/>
+                            <Label text="PO ID"/>
                             <t:template>
-                                <Text text="{salesOrderHeader/salesOrderNumber}"/>
+                                <!-- ✅ FIX: was {purchaseOrderHeader/poNumber} — correct path is {purchaseOrder/poId} -->
+                                <Text text="{purchaseOrder/poId}"/>
                             </t:template>
                         </t:Column>
                         <t:Column>
@@ -277,9 +273,9 @@
         </Panel>
 
         <!-- ═══════════════════════════════════════════ -->
-        <!--               UPDATE SECTION                -->
+        <!--              UPDATE SECTION                 -->
         <!-- ═══════════════════════════════════════════ -->
-        <Panel expandable="false" headerText="Update SO Item"
+        <Panel expandable="false" headerText="Update PO Item"
             class="sapUiLargeMargin sapUiResponsiveMargin"
             visible="{/showUpdatePanel}">
 
@@ -296,10 +292,10 @@
                 columnsM="1"
                 singleContainerFullSize="false">
                 <f:content>
-                    <Label text="Enter Item Number *" />
+                    <Label text="Enter Item ID *" />
                     <Input id="searchItemId"
                         value="{/searchItemId}"
-                        placeholder="Enter Item Number to search"
+                        placeholder="Enter PO Item ID to search"
                         required="true"/>
                 </f:content>
             </f:SimpleForm>
@@ -311,9 +307,9 @@
                     icon="sap-icon://nav-back"/>
             </Toolbar>
 
-            <!-- Edit Panel -->
+            <!-- Edit Panel — shown after search -->
             <Panel expandable="false" visible="{/editItemMode}"
-                headerText="Edit SO Item"
+                headerText="Edit PO Item"
                 class="sapUiLargeMargin sapUiResponsiveMargin">
 
                 <f:SimpleForm id="editItemForm"
@@ -329,10 +325,10 @@
                     columnsM="1"
                     singleContainerFullSize="false">
                     <f:content>
-                        <Label text="Item Number" />
-                        <Text text="{/editItemPayload/itemNumber}" />
-                        <Label text="SO Number" />
-                        <Text text="{/editItemPayload/salesOrderHeader/salesOrderNumber}" />
+                        <Label text="Item ID" />
+                        <Text text="{/editItemPayload/poItemId}" />
+                        <Label text="PO ID" />
+                        <Text text="{/editItemPayload/purchaseOrder/poId}" />
                         <Label text="Material" />
                         <Text text="{/editItemPayload/material}" />
                         <Label text="Quantity *" />
