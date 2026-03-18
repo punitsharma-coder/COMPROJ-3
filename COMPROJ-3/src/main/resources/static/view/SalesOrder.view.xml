@@ -9,7 +9,7 @@
 
     <Page title="Sales Order Management System" showHeader="true" enableScrolling="true">
 
-        <!-- OPERATION SELECTION BUTTONS — unchanged -->
+        <!-- OPERATION SELECTION BUTTONS -->
         <Panel expandable="false" headerText="Select Operation"
             class="sapUiLargeMargin sapUiResponsiveMargin"
             visible="{/showOperationSelector}">
@@ -47,17 +47,11 @@
             <f:SimpleForm id="createCombinedForm"
                 editable="true"
                 layout="ResponsiveGridLayout"
-                labelSpanXL="3"
-                labelSpanL="3"
-                labelSpanM="4"
-                labelSpanS="12"
+                labelSpanXL="3" labelSpanL="3" labelSpanM="4" labelSpanS="12"
                 adjustLabelSpan="false"
-                columnsXL="2"
-                columnsL="1"
-                columnsM="1"
+                columnsXL="2" columnsL="1" columnsM="1"
                 singleContainerFullSize="false">
                 <f:content>
-                    <!-- ── SO HEADER FIELDS ── -->
                     <core:Title text="Sales Order Header" />
 
                     <Label text="SO Number (optional)" />
@@ -81,7 +75,6 @@
                         valueFormat="yyyy-MM-dd"
                         placeholder="Select delivery date"/>
 
-                    <!-- ✅ Customer field with F4 Help button -->
                     <Label text="Customer ID *" />
                     <HBox>
                         <Input id="createCustomerId"
@@ -89,39 +82,26 @@
                             placeholder="Enter customer ID"
                             required="true"
                             width="200px"/>
-                        <!-- ✅ F4 Help button -->
                         <Button icon="sap-icon://value-help"
                             press="onCustomerF4Help"
                             tooltip="Click to select customer (F4)"
                             width="auto"
                             class="sapUiSmallMarginBegin"/>
                     </HBox>
-
-<!--                     ✅ Display selected customer name 
-                    <Label text="Customer Name" />
-                    <Text text="{/createPayload/customer/name}"
-                        class="sapUiSmallMargin"/>-->
-
                 </f:content>
             </f:SimpleForm>
 
-            <!-- ✅ CHANGED: SO Items now use an editable table instead of individual label/input blocks -->
-            <Panel expandable="false" headerText="Sales Order Items"
-                class="sapUiSmallMargin">
-
+            <Panel expandable="false" headerText="Sales Order Items" class="sapUiSmallMargin">
                 <t:Table id="createItemsTable"
                     rows="{/createPayload/items}"
                     selectionMode="None"
                     visibleRowCount="1"
                     rowHeight="48"
                     class="sapUiSmallMargin">
-
                     <t:columns>
-
                         <t:Column width="33%">
                             <Label text="Material"/>
                             <t:template>
-                                <!-- ✅ Material F4 Help — read-only input + value-help button, same pattern as Customer F4 -->
                                 <HBox alignItems="Center">
                                     <Input value="{material}"
                                         placeholder="Select material"
@@ -134,43 +114,29 @@
                                 </HBox>
                             </t:template>
                         </t:Column>
-
                         <t:Column width="160px">
                             <Label text="Quantity"/>
                             <t:template>
-                                <Input value="{quantity}"
-                                    type="Number"
-                                    placeholder="Enter quantity"/>
+                                <Input value="{quantity}" type="Number" placeholder="Enter quantity"/>
                             </t:template>
                         </t:Column>
-
                         <t:Column width="160px">
                             <Label text="UOM"/>
                             <t:template>
-                                <Input value="{uom}"
-                                    placeholder="Enter unit of measurement"/>
+                                <Input value="{uom}" placeholder="Enter unit of measurement"/>
                             </t:template>
                         </t:Column>
-
                     </t:columns>
-
                 </t:Table>
 
-                <!-- ✅ Add Row button — replaces the old Add Item button that was outside the form -->
                 <Toolbar class="sapUiSmallMargin">
-                    <Button text="Add Row"
-                        type="Emphasized"
-                        press="onAddItem"
-                        icon="sap-icon://add"/>
+                    <Button text="Add Row" type="Emphasized" press="onAddItem" icon="sap-icon://add"/>
                 </Toolbar>
-
             </Panel>
 
             <Toolbar class="sapUiSmallMargin">
-                <Button text="Save" type="Accept" press="onSaveCombined"
-                    icon="sap-icon://save"/>
-                <Button text="Back" type="Default" press="onBack"
-                    icon="sap-icon://nav-back"/>
+                <Button text="Save" type="Accept" press="onSaveCombined" icon="sap-icon://save"/>
+                <Button text="Back" type="Default" press="onBack" icon="sap-icon://nav-back"/>
             </Toolbar>
 
         </Panel>
@@ -182,93 +148,91 @@
             class="sapUiLargeMargin sapUiResponsiveMargin"
             visible="{/showReadPanel}">
 
+            <f:SimpleForm editable="true" layout="ResponsiveGridLayout"
+                labelSpanXL="3" labelSpanL="3" labelSpanM="4" labelSpanS="12"
+                adjustLabelSpan="false" columnsXL="2" columnsL="1" columnsM="1"
+                singleContainerFullSize="false">
+                <f:content>
+                    <Label text="SO Number" />
+                    <HBox>
+                        <Input value="{/readSearchSoNumber}"
+                            placeholder="Enter Sales Order Number"
+                            type="Number"
+                            width="200px"/>
+                        <Button text="Search"
+                            type="Emphasized"
+                            press="onReadSearchBySoNumber"
+                            icon="sap-icon://search"
+                            class="sapUiSmallMarginBegin"/>
+                    </HBox>
+                </f:content>
+            </f:SimpleForm>
+
             <Toolbar class="sapUiSmallMargin">
-                <Button text="Load Data" type="Default" press="onLoadData"
-                    icon="sap-icon://refresh"/>
-                <Button text="Back" type="Default" press="onBack"
-                    icon="sap-icon://nav-back"/>
+                <Button text="Back" type="Default" press="onBack" icon="sap-icon://nav-back"/>
             </Toolbar>
 
-            <!-- SO Header Table -->
-            <Panel expandable="false" headerText="SO Header"
-                class="sapUiSmallMargin">
+            <!-- SO Header Table — hidden until search -->
+            <Panel expandable="false" headerText="Sales Order"
+                class="sapUiSmallMargin"
+                visible="{/showReadResult}">
                 <t:Table id="idHeaderTable"
                     selectionMode="None"
-                    visibleRowCount="5"
+                    visibleRowCount="1"
                     class="sapUiSmallMargin">
                     <t:columns>
                         <t:Column width="120px">
                             <Label text="Order No"/>
-                            <t:template>
-                                <Text text="{salesOrderNumber}"/>
-                            </t:template>
+                            <t:template><Text text="{salesOrderNumber}"/></t:template>
                         </t:Column>
                         <t:Column>
                             <Label text="Order Date"/>
-                            <t:template>
-                                <Text text="{dateOfOrder}"/>
-                            </t:template>
+                            <t:template><Text text="{dateOfOrder}"/></t:template>
                         </t:Column>
                         <t:Column>
                             <Label text="Delivery Date"/>
-                            <t:template>
-                                <Text text="{dateOfDelivery}"/>
-                            </t:template>
+                            <t:template><Text text="{dateOfDelivery}"/></t:template>
                         </t:Column>
-                        <!-- ✅ Display Customer Name in table -->
                         <t:Column>
                             <Label text="Customer ID"/>
-                            <t:template>
-                                <Text text="{customer/customerId}"/>
-                            </t:template>
+                            <t:template><Text text="{customer/customerId}"/></t:template>
                         </t:Column>
                         <t:Column>
                             <Label text="Customer Name"/>
-                            <t:template>
-                                <Text text="{customer/name}"/>
-                            </t:template>
+                            <t:template><Text text="{customer/name}"/></t:template>
                         </t:Column>
                     </t:columns>
                 </t:Table>
             </Panel>
 
-            <!-- SO Item Table -->
-            <Panel expandable="false" headerText="SO Items"
-                class="sapUiSmallMargin">
+            <!-- SO Items Table — hidden until search -->
+            <Panel expandable="false" headerText="Items"
+                class="sapUiSmallMargin"
+                visible="{/showReadResult}">
                 <t:Table id="idItemTable"
                     selectionMode="None"
-                    visibleRowCount="5"
+                    visibleRowCount="1"
                     class="sapUiSmallMargin">
                     <t:columns>
                         <t:Column width="100px">
                             <Label text="Item No"/>
-                            <t:template>
-                                <Text text="{itemNumber}"/>
-                            </t:template>
+                            <t:template><Text text="{itemNumber}"/></t:template>
                         </t:Column>
                         <t:Column width="120px">
                             <Label text="SO Number"/>
-                            <t:template>
-                                <Text text="{salesOrderHeader/salesOrderNumber}"/>
-                            </t:template>
+                            <t:template><Text text="{salesOrderHeader/salesOrderNumber}"/></t:template>
                         </t:Column>
                         <t:Column>
                             <Label text="Material"/>
-                            <t:template>
-                                <Text text="{material}"/>
-                            </t:template>
+                            <t:template><Text text="{material}"/></t:template>
                         </t:Column>
                         <t:Column>
                             <Label text="Quantity"/>
-                            <t:template>
-                                <Text text="{quantity}"/>
-                            </t:template>
+                            <t:template><Text text="{quantity}"/></t:template>
                         </t:Column>
                         <t:Column>
                             <Label text="UOM"/>
-                            <t:template>
-                                <Text text="{uom}"/>
-                            </t:template>
+                            <t:template><Text text="{uom}"/></t:template>
                         </t:Column>
                     </t:columns>
                 </t:Table>
@@ -279,82 +243,129 @@
         <!-- ═══════════════════════════════════════════ -->
         <!--               UPDATE SECTION                -->
         <!-- ═══════════════════════════════════════════ -->
-        <Panel expandable="false" headerText="Update SO Item"
+        <Panel expandable="false" headerText="Update Sales Order"
             class="sapUiLargeMargin sapUiResponsiveMargin"
             visible="{/showUpdatePanel}">
 
-            <f:SimpleForm id="updateSearchForm"
-                editable="true"
-                layout="ResponsiveGridLayout"
-                labelSpanXL="3"
-                labelSpanL="3"
-                labelSpanM="4"
-                labelSpanS="12"
-                adjustLabelSpan="false"
-                columnsXL="2"
-                columnsL="1"
-                columnsM="1"
+            <!-- Search by SO Number -->
+            <f:SimpleForm editable="true" layout="ResponsiveGridLayout"
+                labelSpanXL="3" labelSpanL="3" labelSpanM="4" labelSpanS="12"
+                adjustLabelSpan="false" columnsXL="2" columnsL="1" columnsM="1"
                 singleContainerFullSize="false">
                 <f:content>
-                    <Label text="Enter Item Number *" />
-                    <Input id="searchItemId"
-                        value="{/searchItemId}"
-                        placeholder="Enter Item Number to search"
+                    <Label text="SO Number *" />
+                    <Input id="updateSearchSoId"
+                        value="{/searchSoNumber}"
+                        placeholder="Enter SO Number to search"
+                        type="Number"
                         required="true"/>
                 </f:content>
             </f:SimpleForm>
 
             <Toolbar class="sapUiSmallMargin">
                 <Button text="Search &amp; Load" type="Emphasized"
-                    press="onSearchItem" icon="sap-icon://search"/>
-                <Button text="Back" type="Default" press="onBack"
-                    icon="sap-icon://nav-back"/>
+                    press="onSearchBySoNumber" icon="sap-icon://search"/>
+                <Button text="Back" type="Default" press="onBack" icon="sap-icon://nav-back"/>
             </Toolbar>
 
-            <!-- Edit Panel -->
-            <Panel expandable="false" visible="{/editItemMode}"
-                headerText="Edit SO Item"
+            <!-- Result Panel — shows only after successful search -->
+            <Panel expandable="false" visible="{/showSoSearchResult}"
+                headerText="Edit Sales Order"
                 class="sapUiLargeMargin sapUiResponsiveMargin">
 
-                <f:SimpleForm id="editItemForm"
-                    editable="true"
-                    layout="ResponsiveGridLayout"
-                    labelSpanXL="3"
-                    labelSpanL="3"
-                    labelSpanM="4"
-                    labelSpanS="12"
-                    adjustLabelSpan="false"
-                    columnsXL="2"
-                    columnsL="1"
-                    columnsM="1"
-                    singleContainerFullSize="false">
-                    <f:content>
-                        <Label text="Item Number" />
-                        <Text text="{/editItemPayload/itemNumber}" />
-                        <Label text="SO Number" />
-                        <Text text="{/editItemPayload/salesOrderHeader/salesOrderNumber}" />
-                        <Label text="Material" />
-                        <Text text="{/editItemPayload/material}" />
-                        <Label text="Quantity *" />
-                        <Input id="editItemQuantity"
-                            value="{/editItemPayload/quantity}"
-                            placeholder="Enter new quantity"
-                            type="Number"
-                            required="true"/>
-                        <Label text="UOM" />
-                        <Text text="{/editItemPayload/uom}" />
-                    </f:content>
-                </f:SimpleForm>
+                <!-- Header table — rows bound to array /filteredSoHeader, relative paths inside template -->
+                <Panel expandable="false" headerText="Sales Order" class="sapUiSmallMargin">
+                    <t:Table id="updateHeaderTable"
+                        rows="{/filteredSoHeader}"
+                        selectionMode="None"
+                        visibleRowCount="1"
+                        rowHeight="52"
+                        class="sapUiSmallMargin">
+                        <t:columns>
+                            <t:Column width="100px">
+                                <Label text="SO Number"/>
+                                <t:template>
+                                    <Text text="{salesOrderNumber}"/>
+                                </t:template>
+                            </t:Column>
+                            <t:Column width="200px">
+                                <Label text="Order Date"/>
+                                <t:template>
+                                    <DatePicker value="{dateOfOrder}"
+                                        displayFormat="dd-MM-yyyy"
+                                        valueFormat="yyyy-MM-dd"
+                                        placeholder="e.g. 18-03-2026"
+                                        width="100%"/>
+                                </t:template>
+                            </t:Column>
+                            <t:Column width="200px">
+                                <Label text="Delivery Date"/>
+                                <t:template>
+                                    <DatePicker value="{dateOfDelivery}"
+                                        displayFormat="dd-MM-yyyy"
+                                        valueFormat="yyyy-MM-dd"
+                                        placeholder="e.g. 25-03-2026"
+                                        width="100%"/>
+                                </t:template>
+                            </t:Column>
+                            <t:Column width="250px">
+                                <Label text="Customer Name"/>
+                                <t:template>
+                                    <HBox alignItems="Center">
+                                        <Input value="{customer/name}"
+                                            placeholder="Customer name"
+                                            editable="false"
+                                            width="190px"/>
+                                        <Button icon="sap-icon://value-help"
+                                            press="onUpdateCustomerF4Help"
+                                            tooltip="Click to select customer (F4)"
+                                            width="auto"/>
+                                    </HBox>
+                                </t:template>
+                            </t:Column>
+                        </t:columns>
+                    </t:Table>
+                </Panel>
+
+                <!-- Items edit table — only quantity is editable -->
+                <Panel expandable="false" headerText="Items" class="sapUiSmallMargin">
+                    <t:Table id="updateItemsTable"
+                        rows="{/filteredSoItems}"
+                        selectionMode="None"
+                        visibleRowCount="1"
+                        rowHeight="52"
+                        class="sapUiSmallMargin">
+                        <t:columns>
+                            <t:Column width="100px">
+                                <Label text="Item No"/>
+                                <t:template><Text text="{itemNumber}"/></t:template>
+                            </t:Column>
+                            <t:Column width="300px">
+                                <Label text="Material"/>
+                                <t:template><Text text="{material}"/></t:template>
+                            </t:Column>
+                            <t:Column width="200px">
+                                <Label text="Quantity"/>
+                                <t:template>
+                                    <Input value="{quantity}" type="Number" 
+                                    placeholder="Enter quantity"
+                                    width="100%"/>
+                                </t:template>
+                            </t:Column>
+                            <t:Column width="120px">
+                                <Label text="UOM"/>
+                                <t:template><Text text="{uom}"/></t:template>
+                            </t:Column>
+                        </t:columns>
+                    </t:Table>
+                </Panel>
 
                 <Toolbar class="sapUiSmallMargin">
-                    <Button text="Update" type="Accept" press="onUpdateItem"
-                        icon="sap-icon://save"/>
-                    <Button text="Cancel" type="Reject" press="onCancelItemEdit"
-                        icon="sap-icon://cancel"/>
+                    <Button text="Update" type="Accept" press="onUpdateItem" icon="sap-icon://save"/>
+                    <Button text="Cancel" type="Reject" press="onCancelItemEdit" icon="sap-icon://cancel"/>
                 </Toolbar>
 
             </Panel>
-
         </Panel>
 
     </Page>

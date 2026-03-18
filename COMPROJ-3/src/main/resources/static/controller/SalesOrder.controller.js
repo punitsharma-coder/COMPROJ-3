@@ -20,7 +20,6 @@ sap.ui.define(
                         "dateOfOrder":      null,
                         "dateOfDelivery":   null,
                         "customer":         { "customerId": null, "name": "" },
-                        // items array — each row in the table is one object here
                         "items": [
                             { "material": "", "quantity": null, "uom": "" }
                         ]
@@ -32,11 +31,17 @@ sap.ui.define(
                         "uom":              "",
                         "salesOrderHeader": { "salesOrderNumber": null }
                     },
-                    "salesOrders":     [],
-                    "salesOrderItems": [],
-                    "customerList":    [],
-                    "productList":     [],
-                    "searchItemId": "",
+                    "salesOrders":           [],
+                    "salesOrderItems":       [],
+                    "customerList":          [],
+                    "productList":           [],
+                    "searchItemId":          "",
+                    "searchSoNumber":        "",
+                    "readSearchSoNumber":    "",
+                    "filteredSoHeader":      null,
+                    "filteredSoItems":       [],
+                    "showReadResult":        false,
+                    "showSoSearchResult":    false,
                     "editItemMode":          false,
                     "showOperationSelector": true,
                     "showCreatePanel":       false,
@@ -48,77 +53,63 @@ sap.ui.define(
                 this.loadProductsForF4();
             },
 
-            // ✅ Load all customers for F4 Help
+            /* =========================
+            LOAD CUSTOMERS
+            ========================= */
+
             loadCustomersForF4: function(){
                 var that = this;
-                console.log("Starting to load customers for F4 Help...");
                 service.callService("/customers/f4help", "GET", {})
                     .then(function(data){
-                        console.log("=== API Response ===");
-                        console.log("Response Data:", data);
-                        console.log("Response Length:", data ? data.length : 0);
-                        var oModel = that.getView().getModel();
+                        var oModel        = that.getView().getModel();
                         var customerArray = Array.isArray(data) ? data : (data ? [data] : []);
-                        console.log("Setting customerList with", customerArray.length, "customers");
                         oModel.setProperty("/customerList", customerArray);
-                        var saved = oModel.getProperty("/customerList");
-                        console.log("Verified - customerList now has:", saved.length, "customers");
-                        console.log("Customer List:", saved);
                     })
-                    .catch(function(err){
-                        console.error("Error loading customers for F4 Help:", err);
+                    .catch(function(){
                         MessageBox.error("Failed to load customers");
                     });
             },
 
-            // ✅ Load all products for Material F4 Help
+            /* =========================
+            LOAD PRODUCTS
+            ========================= */
+
             loadProductsForF4: function(){
                 var that = this;
-                console.log("Starting to load products for F4 Help...");
                 service.callService("/product", "GET", {})
                     .then(function(data){
-                        console.log("=== Product API Response ===");
-                        console.log("Response Data:", data);
-                        console.log("Response Length:", data ? data.length : 0);
-                        var oModel = that.getView().getModel();
+                        var oModel       = that.getView().getModel();
                         var productArray = Array.isArray(data) ? data : (data ? [data] : []);
-                        console.log("Setting productList with", productArray.length, "products");
                         oModel.setProperty("/productList", productArray);
-                        var saved = oModel.getProperty("/productList");
-                        console.log("Verified - productList now has:", saved.length, "products");
-                        console.log("Product List:", saved);
                     })
-                    .catch(function(err){
-                        console.error("Error loading products for F4 Help:", err);
+                    .catch(function(){
                         MessageBox.error("Failed to load products");
                     });
             },
 
-            // ✅ Open F4 Help Dialog for Material — fills material (product.name) AND uom (product.uom)
+            /* =========================
+            MATERIAL F4 HELP (CREATE)
+            ========================= */
+
             onMaterialF4Help: function(oEvent){
-                var that    = this;
-                var oModel  = this.getView().getModel();
+                var oModel      = this.getView().getModel();
                 var productList = oModel.getProperty("/productList") || [];
-                console.log("=== Material F4 Help Dialog ===");
-                console.log("Opening Material F4 Help with", productList.length, "products");
+
                 if(!productList || productList.length === 0){
                     MessageBox.warning("No products available. Please create products first.");
                     return;
                 }
 
-                // ✅ Get the row index from the button's binding context so we know which item to update
-                var oButton     = oEvent.getSource();
-                var oContext    = oButton.getBindingContext();
-                var sPath       = oContext ? oContext.getPath() : null;   // e.g. "/createPayload/items/0"
-                var iRowIndex   = sPath ? parseInt(sPath.split("/").pop()) : null;
-                console.log("Material F4 triggered for row index:", iRowIndex);
+                var oButton   = oEvent.getSource();
+                var oContext  = oButton.getBindingContext();
+                var sPath     = oContext ? oContext.getPath() : null;
+                var iRowIndex = sPath ? parseInt(sPath.split("/").pop()) : null;
 
                 var oDialog = new Dialog({
                     title: "Select Material",
-                    width: "600px",
-                    height: "500px",
-                    draggable: true,
-                    resizable: true,
+					contentWidth: "500px",
+                    contentHeight: "300px",
+                    verticalScrolling: true,
                     content: [new List({
                         mode: "SingleSelectMaster",
                         growing: true,
@@ -137,35 +128,24 @@ sap.ui.define(
                         press: function(){
                             var oList            = oDialog.getContent()[0];
                             var oSelectedItem    = oList.getSelectedItem();
-                            console.log("Selected Item:", oSelectedItem);
                             if(!oSelectedItem){
                                 MessageBox.warning("Please select a material");
                                 return;
                             }
                             var oSelectedProduct = oSelectedItem.getBindingContext().getObject();
-                            console.log("Selected Product:", oSelectedProduct);
-                            console.log("Setting material:", oSelectedProduct.name);
-                            console.log("Auto-filling UOM:", oSelectedProduct.uom);
-
-                            // ✅ Duplicate check — same material cannot be added twice
-                            var aItems = oModel.getProperty("/createPayload/items");
-                            var bAlreadyExists = aItems.some(function(oItem, iIndex){
-                                // skip the current row itself when checking
+                            var aItems           = oModel.getProperty("/createPayload/items");
+                            var bAlreadyExists   = aItems.some(function(oItem, iIndex){
                                 return iIndex !== iRowIndex && oItem.material === oSelectedProduct.name;
                             });
                             if(bAlreadyExists){
                                 MessageBox.warning(
                                     "Material '" + oSelectedProduct.name + "' is already added in another row. Please select a different material."
                                 );
-                                // dialog stays open — user can pick again
                                 return;
                             }
-
-                            // ✅ Update the correct row in the items array
                             if(iRowIndex !== null && aItems[iRowIndex] !== undefined){
                                 aItems[iRowIndex].material = oSelectedProduct.name;
-                                // ✅ Auto-fill UOM from product — saves the user an extra step
-                                aItems[iRowIndex].uom = oSelectedProduct.uom;
+                                aItems[iRowIndex].uom      = oSelectedProduct.uom;
                                 oModel.setProperty("/createPayload/items", aItems);
                             }
                             oDialog.close();
@@ -173,35 +153,31 @@ sap.ui.define(
                     }),
                     endButton: new sap.m.Button({
                         text: "Cancel",
-                        press: function(){
-                            oDialog.close();
-                        }
+                        press: function(){ oDialog.close(); }
                     })
                 });
                 oDialog.setModel(oModel);
-                console.log("Opening material dialog with model bound");
                 oDialog.open();
             },
 
-            // ✅ Open F4 Help Dialog for Customer - WITH SCROLLING
+            /* =========================
+            CUSTOMER F4 HELP (CREATE)
+            ========================= */
+
             onCustomerF4Help: function(){
-                var that = this;
-                var oModel = this.getView().getModel();
+                var oModel       = this.getView().getModel();
                 var customerList = oModel.getProperty("/customerList") || [];
-                console.log("=== F4 Help Dialog ===");
-                console.log("Opening F4 Help with", customerList.length, "customers");
-                console.log("Customer List:", customerList);
+
                 if(!customerList || customerList.length === 0){
                     MessageBox.warning("No customers available. Please create customers first.");
                     return;
                 }
-                // ✅ FIXED: Create Dialog with scrollable content
+
                 var oDialog = new Dialog({
-                    title: "Customer Help",
-                    width: "600px",
-                    height: "500px",
-                    draggable: true,
-                    resizable: true,
+                    title: "Select Customer",
+					contentWidth: "500px",
+                    contentHeight: "300px",
+                    verticalScrolling: true,
                     content: [new List({
                         mode: "SingleSelectMaster",
                         growing: true,
@@ -218,38 +194,93 @@ sap.ui.define(
                     beginButton: new sap.m.Button({
                         text: "Select",
                         press: function(){
-                            var oList = oDialog.getContent()[0];
-                            var oSelectedItem = oList.getSelectedItem();
-                            console.log("Selected Item:", oSelectedItem);
+                            var oList             = oDialog.getContent()[0];
+                            var oSelectedItem     = oList.getSelectedItem();
                             if(!oSelectedItem){
                                 MessageBox.warning("Please select a customer");
                                 return;
                             }
                             var oSelectedCustomer = oSelectedItem.getBindingContext().getObject();
-                            console.log("Selected Customer:", oSelectedCustomer);
-                            console.log("Setting customer ID:", oSelectedCustomer.customerId);
-                            console.log("Setting customer name:", oSelectedCustomer.name);
                             oModel.setProperty("/createPayload/customer", {
                                 "customerId": oSelectedCustomer.customerId,
-                                "name": oSelectedCustomer.name
+                                "name":       oSelectedCustomer.name
                             });
-                            console.log("Customer set in form");
                             oDialog.close();
                         }
                     }),
                     endButton: new sap.m.Button({
                         text: "Cancel",
-                        press: function(){
-                            oDialog.close();
-                        }
+                        press: function(){ oDialog.close(); }
                     })
                 });
                 oDialog.setModel(oModel);
-                console.log("Opening dialog with model bound");
                 oDialog.open();
             },
 
-            // ─── OPERATION SELECTION ──────────────────────────────
+            /* =========================
+            CUSTOMER F4 HELP (UPDATE)
+            ========================= */
+
+            onUpdateCustomerF4Help: function(){
+                var oModel       = this.getView().getModel();
+                var customerList = oModel.getProperty("/customerList") || [];
+
+                if(!customerList || customerList.length === 0){
+                    MessageBox.warning("No customers available. Please create customers first.");
+                    return;
+                }
+
+                var oDialog = new Dialog({
+                    title: "Select Customer",
+                    contentWidth: "500px",
+                    contentHeight: "300px",
+                    verticalScrolling: true,
+                    content: [new List({
+                        mode: "SingleSelectMaster",
+                        growing: true,
+                        growingThreshold: 5,
+                        growingScrollToLoad: true,
+                        items: {
+                            path: "/customerList",
+                            template: new StandardListItem({
+                                title: "{name}",
+                                description: "ID: {customerId} | City: {city}"
+                            })
+                        }
+                    })],
+                    beginButton: new sap.m.Button({
+                        text: "Select",
+                        press: function(){
+                            var oList             = oDialog.getContent()[0];
+                            var oSelectedItem     = oList.getSelectedItem();
+                            if(!oSelectedItem){
+                                MessageBox.warning("Please select a customer");
+                                return;
+                            }
+                            var oSelectedCustomer = oSelectedItem.getBindingContext().getObject();
+                            var headerArray       = oModel.getProperty("/filteredSoHeader");
+                            headerArray[0].customer = {
+                                customerId: oSelectedCustomer.customerId,
+                                name:       oSelectedCustomer.name
+                            };
+                            oModel.setProperty("/filteredSoHeader", headerArray);
+							oModel.refresh(true);
+							oDialog.close();
+                        }
+                    }),
+                    endButton: new sap.m.Button({
+                        text: "Cancel",
+                        press: function(){ oDialog.close(); }
+                    })
+                });
+                oDialog.setModel(oModel);
+                oDialog.open();
+            },
+
+            /* =========================
+            OPERATION SELECTION
+            ========================= */
+
             onSelectCreate: function(){
                 var oModel = this.getView().getModel();
                 oModel.setProperty("/showOperationSelector", false);
@@ -264,7 +295,8 @@ sap.ui.define(
                 oModel.setProperty("/showCreatePanel",       false);
                 oModel.setProperty("/showReadPanel",         true);
                 oModel.setProperty("/showUpdatePanel",       false);
-                this.onLoadData();
+                oModel.setProperty("/showReadResult",        false);
+                oModel.setProperty("/readSearchSoNumber",    "");
             },
 
             onSelectUpdate: function(){
@@ -273,11 +305,15 @@ sap.ui.define(
                 oModel.setProperty("/showCreatePanel",       false);
                 oModel.setProperty("/showReadPanel",         false);
                 oModel.setProperty("/showUpdatePanel",       true);
-                oModel.setProperty("/editItemMode",  false);
-                oModel.setProperty("/searchItemId",  "");
+                oModel.setProperty("/editItemMode",          false);
+                oModel.setProperty("/searchSoNumber",        "");
+                oModel.setProperty("/showSoSearchResult",    false);
             },
 
-            // ─── BACK / GLOBAL ────────────────────────────────────
+            /* =========================
+            BACK
+            ========================= */
+
             onBack: function(){
                 var oModel = this.getView().getModel();
                 oModel.setProperty("/showOperationSelector", true);
@@ -287,35 +323,32 @@ sap.ui.define(
                 this.resetAllData();
             },
 
-            // ─── CREATE ────────────────────────────────────────────
-            // ✅ CHANGED: onAddItem now just pushes to the model array.
-            //    The table reacts automatically via its rows="{/createPayload/items}" binding.
-            //    No more manual VBox injection into additionalItemsContainer.
+            /* =========================
+            CREATE — ADD ITEM ROW
+            ========================= */
+
             onAddItem: function(){
                 var oModel = this.getView().getModel();
-                var items = oModel.getProperty("/createPayload/items") || [];
-
-                // Push a new empty item into the model array
+                var items  = oModel.getProperty("/createPayload/items") || [];
                 items.push({ "material": "", "quantity": null, "uom": "" });
                 oModel.setProperty("/createPayload/items", items);
-
-                // ✅ visibleRowCount does not support model binding on sap.ui.table.Table
-                //    — must be set directly via the control API so table grows without a scrollbar
                 this.getView().byId("createItemsTable").setVisibleRowCount(items.length);
             },
+
+            /* =========================
+            CREATE — SAVE
+            ========================= */
 
             onSaveCombined: function(){
                 var oModel   = this.getView().getModel();
                 var oPayload = oModel.getProperty("/createPayload");
                 var that     = this;
 
-                // Header validation
                 if(!oPayload.dateOfOrder || !oPayload.customer || !oPayload.customer.customerId){
                     MessageBox.error("Please fill all required fields (Order Date, Customer ID)");
                     return;
                 }
 
-                // ✅ Item validation — check all items have material and quantity
                 var items = oPayload.items || [];
                 for(var i = 0; i < items.length; i++){
                     if(!items[i].material || String(items[i].material).trim() === ""){
@@ -336,7 +369,6 @@ sap.ui.define(
                                 MessageBox.error("That SO Number doesn't exist. Please enter a valid SO Number or leave it blank to auto-generate.");
                                 return;
                             }
-                            // ✅ CHANGED: call _createAllItems instead of _createItemOnly
                             that._createAllItems(parseInt(existingHeader.salesOrderNumber), items);
                         })
                         .catch(function(err){
@@ -344,14 +376,12 @@ sap.ui.define(
                             console.error(err);
                         });
                 } else {
-                    // ✅ CHANGED: call _createHeaderThenAllItems instead of _createHeaderThenItem
                     that._createHeaderThenAllItems(oPayload, items);
                 }
             },
 
-            // ✅ CHANGED: was _createHeaderThenItem — now passes items array
             _createHeaderThenAllItems: function(oPayload, items){
-                var that = this;
+                var that          = this;
                 var headerPayload = {
                     "dateOfOrder":    oPayload.dateOfOrder,
                     "dateOfDelivery": oPayload.dateOfDelivery,
@@ -367,11 +397,10 @@ sap.ui.define(
                     });
             },
 
-            // ✅ NEW: replaces _createItemOnly — loops through all items sequentially
             _createAllItems: function(soNumber, items){
-                var that = this;
+                var that         = this;
                 var createdItems = [];
-                // Chain each item POST one after another using reduce
+
                 var chain = items.reduce(function(promiseChain, item){
                     return promiseChain.then(function(){
                         var itemPayload = {
@@ -386,6 +415,7 @@ sap.ui.define(
                             });
                     });
                 }, Promise.resolve());
+
                 return chain
                     .then(function(){
                         var itemNumbers = createdItems.map(function(i){ return i.itemNumber; }).join(", ");
@@ -403,99 +433,156 @@ sap.ui.define(
                     });
             },
 
-            // ─── READ ──────────────────────────────────────────────
-            onLoadData: function(){
-                var that = this;
-                service.callService("/salesorderheader", "GET", {})
-                    .then(function(data){
-                        var oModel = that.getView().getModel();
-                        oModel.setProperty("/salesOrders", data || []);
-                        that.getView().byId("idHeaderTable").bindRows("/salesOrders");
-                    })
-                    .catch(function(err){
-                        MessageBox.error("Error loading SO Headers");
-                        console.error(err);
-                    });
-                service.callService("/salesorderitem", "GET", {})
-                    .then(function(data){
-                        var oModel = that.getView().getModel();
-                        oModel.setProperty("/salesOrderItems", data || []);
-                        that.getView().byId("idItemTable").bindRows("/salesOrderItems");
-                        MessageBox.information("Data loaded successfully");
-                    })
-                    .catch(function(err){
-                        MessageBox.error("Error loading SO Items");
-                        console.error(err);
-                    });
-            },
+            /* =========================
+            READ — SEARCH BY SO NUMBER
+            ========================= */
 
-            // ─── UPDATE SO ITEM ────────────────────────────────────
-            onSearchItem: function(){
-                var oModel     = this.getView().getModel();
-                var itemNumber = oModel.getProperty("/searchItemId");
-                if(!itemNumber || String(itemNumber).trim() === ""){
-                    MessageBox.error("Please enter an Item Number");
+            onReadSearchBySoNumber: function(){
+                var oModel   = this.getView().getModel();
+                var soNumber = oModel.getProperty("/readSearchSoNumber");
+                var that     = this;
+
+                if(!soNumber || String(soNumber).trim() === ""){
+                    MessageBox.error("Please enter a SO Number");
                     return;
                 }
-                service.callService("/salesorderitem/" + itemNumber, "GET", {})
-                    .then(function(data){
-                        if(!data || !data.itemNumber){
-                            MessageBox.error("This Item Number doesn't exist");
-                            oModel.setProperty("/editItemMode", false);
+
+                service.callService("/salesorderheader/" + soNumber, "GET", {})
+                    .then(function(headerData){
+                        if(!headerData || !headerData.salesOrderNumber){
+                            MessageBox.error("SO Number not found");
+                            oModel.setProperty("/showReadResult", false);
                             return;
                         }
-                        oModel.setProperty("/editItemPayload", {
-                            "itemNumber": data.itemNumber,
-                            "material":   data.material,
-                            "quantity":   data.quantity,
-                            "uom":        data.uom,
-                            "salesOrderHeader": data.salesOrderHeader || { "salesOrderNumber": null }
-                        });
-                        oModel.setProperty("/editItemMode", true);
+                        oModel.setProperty("/salesOrders", [headerData]);
+                        that.getView().byId("idHeaderTable").bindRows("/salesOrders");
+                        that.getView().byId("idHeaderTable").setVisibleRowCount(1);
+
+                        return service.callService("/salesorderitem", "GET", {})
+                            .then(function(allItems){
+                                var items = (allItems || []).filter(function(item){
+                                    return item.salesOrderHeader &&
+                                           item.salesOrderHeader.salesOrderNumber === parseInt(soNumber);
+                                });
+                                oModel.setProperty("/salesOrderItems", items);
+                                that.getView().byId("idItemTable").bindRows("/salesOrderItems");
+                                that.getView().byId("idItemTable").setVisibleRowCount(items.length || 1);
+                                oModel.setProperty("/showReadResult", true);
+                            });
                     })
                     .catch(function(err){
-                        MessageBox.error("This Item Number doesn't exist");
-                        oModel.setProperty("/editItemMode", false);
+                        MessageBox.error("SO Number not found");
+                        oModel.setProperty("/showReadResult", false);
                         console.error(err);
                     });
             },
 
+            /* =========================
+            UPDATE — SEARCH BY SO NUMBER
+            ========================= */
+
+			onSearchBySoNumber: function(){
+			    var oModel   = this.getView().getModel();
+			    var soNumber = oModel.getProperty("/searchSoNumber");
+			    var that     = this;
+
+			    if(!soNumber || String(soNumber).trim() === ""){
+			        MessageBox.error("Please enter a SO Number");
+			        return;
+			    }
+
+			    service.callService("/salesorderheader/" + soNumber, "GET", {})
+			        .then(function(headerData){
+			            if(!headerData || !headerData.salesOrderNumber){
+			                MessageBox.error("SO Number not found");
+			                oModel.setProperty("/showSoSearchResult", false);
+			                return;
+			            }
+
+			            // Wrap in array so t:Table can bind to it
+			            oModel.setProperty("/filteredSoHeader", [headerData]);
+
+			            return service.callService("/salesorderitem", "GET", {})
+			                .then(function(allItems){
+			                    var items = (allItems || []).filter(function(item){
+			                        return item.salesOrderHeader &&
+			                               item.salesOrderHeader.salesOrderNumber === parseInt(soNumber);
+			                    });
+			                    oModel.setProperty("/filteredSoItems", items);
+			                    oModel.setProperty("/showSoSearchResult", true);
+			                    that.getView().byId("updateItemsTable").setVisibleRowCount(items.length || 1);
+			                    that.getView().byId("updateHeaderTable").setVisibleRowCount(1);
+			                });
+			        })
+			        .catch(function(err){
+			            MessageBox.error("SO Number not found");
+			            oModel.setProperty("/showSoSearchResult", false);
+			            console.error(err);
+			        });
+			},
+
+            /* =========================
+            UPDATE — SAVE
+            ========================= */
+
             onUpdateItem: function(){
-                var oModel      = this.getView().getModel();
-                var editPayload = oModel.getProperty("/editItemPayload");
-                if(editPayload.quantity === null || editPayload.quantity === ""){
-                    MessageBox.error("Please enter a valid Quantity");
+                var oModel = this.getView().getModel();
+                var headerArray = oModel.getProperty("/filteredSoHeader");
+				var header      = headerArray && headerArray[0];  
+                var items  = oModel.getProperty("/filteredSoItems");
+                var that   = this;
+
+                if(!header || !header.salesOrderNumber){
+                    MessageBox.error("No Sales Order loaded");
                     return;
                 }
-                service.callService(
-                    "/salesorderitem/" + editPayload.itemNumber,
-                    "PUT",
-                    { "quantity": parseInt(editPayload.quantity) }
-                )
-                .then(function(){
-                    MessageBox.success("SO Item Updated Successfully");
-                    this.onBack();
-                }.bind(this))
-                .catch(function(err){
-                    MessageBox.error("Error: Failed to update SO Item");
-                    console.error(err);
-                });
+
+                var headerPayload = {
+                    "salesOrderNumber": header.salesOrderNumber,
+                    "dateOfOrder":      header.dateOfOrder,
+                    "dateOfDelivery":   header.dateOfDelivery,
+                    "customer":         header.customer
+                };
+
+                service.callService("/salesorderheader", "PUT", headerPayload)
+                    .then(function(){
+                        var chain = items.reduce(function(promiseChain, item){
+                            return promiseChain.then(function(){
+                                return service.callService(
+                                    "/salesorderitem/" + item.itemNumber,
+                                    "PUT",
+                                    { "quantity": parseInt(item.quantity) }
+                                );
+                            });
+                        }, Promise.resolve());
+                        return chain;
+                    })
+                    .then(function(){
+                        MessageBox.success("Sales Order updated successfully!");
+                        that.onBack();
+                    })
+                    .catch(function(err){
+                        MessageBox.error("Error updating Sales Order");
+                        console.error(err);
+                    });
             },
+
+            /* =========================
+            UPDATE — CANCEL
+            ========================= */
 
             onCancelItemEdit: function(){
                 var oModel = this.getView().getModel();
-                oModel.setProperty("/editItemMode",  false);
-                oModel.setProperty("/searchItemId",  "");
-                oModel.setProperty("/editItemPayload", {
-                    "itemNumber":       null,
-                    "material":         "",
-                    "quantity":         null,
-                    "uom":              "",
-                    "salesOrderHeader": { "salesOrderNumber": null }
-                });
+                oModel.setProperty("/showSoSearchResult", false);
+                oModel.setProperty("/searchSoNumber",     "");
+                oModel.setProperty("/filteredSoHeader",   null);
+                oModel.setProperty("/filteredSoItems",    []);
             },
 
-            // ─── RESET HELPERS ─────────────────────────────────────
+            /* =========================
+            RESET ALL DATA
+            ========================= */
+
             resetAllData: function(){
                 var oModel = this.getView().getModel();
                 oModel.setProperty("/createPayload", {
@@ -503,12 +590,10 @@ sap.ui.define(
                     "dateOfOrder":      null,
                     "dateOfDelivery":   null,
                     "customer":         { "customerId": null, "name": "" },
-                    // ✅ reset items back to one empty item
                     "items": [
                         { "material": "", "quantity": null, "uom": "" }
                     ]
                 });
-                // ✅ reset visibleRowCount directly on the control back to 1
                 this.getView().byId("createItemsTable").setVisibleRowCount(1);
                 oModel.setProperty("/editItemPayload", {
                     "itemNumber":       null,
@@ -517,8 +602,14 @@ sap.ui.define(
                     "uom":              "",
                     "salesOrderHeader": { "salesOrderNumber": null }
                 });
-                oModel.setProperty("/editItemMode", false);
-                oModel.setProperty("/searchItemId", "");
+                oModel.setProperty("/editItemMode",       false);
+                oModel.setProperty("/searchItemId",       "");
+                oModel.setProperty("/searchSoNumber",     "");
+                oModel.setProperty("/readSearchSoNumber", "");
+                oModel.setProperty("/filteredSoHeader",   null);
+                oModel.setProperty("/filteredSoItems",    []);
+                oModel.setProperty("/showReadResult",     false);
+                oModel.setProperty("/showSoSearchResult", false);
             }
 
         });
