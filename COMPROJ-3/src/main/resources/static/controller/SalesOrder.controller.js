@@ -574,6 +574,7 @@ sap.ui.define(
                     service.callService("/salesorderheader", "GET", {})
                         .then(function(data){
                             var arr = Array.isArray(data) ? data : (data ? [data] : []);
+							arr.sort(function(a, b){ return a.salesOrderNumber - b.salesOrderNumber; });
                             oModel.setProperty("/salesOrders", arr);
                             that.getView().byId("idHeaderTable").bindRows("/salesOrders");
                             that.getView().byId("idHeaderTable").setVisibleRowCount(arr.length || 1);
