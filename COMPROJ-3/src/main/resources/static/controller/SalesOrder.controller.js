@@ -21,6 +21,8 @@ sap.ui.define(
                         "dateOfDelivery":   null,
                         "customer":         { "customerId": null, "name": "" },
                         "items": [
+                            { "material": "", "quantity": null, "uom": "" },
+                            { "material": "", "quantity": null, "uom": "" },
                             { "material": "", "quantity": null, "uom": "" }
                         ]
                     },
@@ -41,6 +43,7 @@ sap.ui.define(
                     "filteredSoHeader":      null,
                     "filteredSoItems":       [],
                     "showReadResult":        false,
+                    "showItemsTable":        false,
                     "showSoSearchResult":    false,
                     "editItemMode":          false,
                     "showOperationSelector": true,
@@ -107,7 +110,7 @@ sap.ui.define(
 
                 var oDialog = new Dialog({
                     title: "Select Material",
-					contentWidth: "500px",
+                    contentWidth: "500px",
                     contentHeight: "300px",
                     verticalScrolling: true,
                     content: [new List({
@@ -175,7 +178,7 @@ sap.ui.define(
 
                 var oDialog = new Dialog({
                     title: "Select Customer",
-					contentWidth: "500px",
+                    contentWidth: "500px",
                     contentHeight: "300px",
                     verticalScrolling: true,
                     content: [new List({
@@ -264,8 +267,8 @@ sap.ui.define(
                                 name:       oSelectedCustomer.name
                             };
                             oModel.setProperty("/filteredSoHeader", headerArray);
-							oModel.refresh(true);
-							oDialog.close();
+                            oModel.refresh(true);
+                            oDialog.close();
                         }
                     }),
                     endButton: new sap.m.Button({
@@ -275,6 +278,134 @@ sap.ui.define(
                 });
                 oDialog.setModel(oModel);
                 oDialog.open();
+            },
+
+            /* =========================
+            SO NUMBER F4 HELP (READ)
+            ========================= */
+
+            onReadSoNumberF4Help: function(){
+                var oModel = this.getView().getModel();
+                var that   = this;
+
+                service.callService("/salesorderheader", "GET", {})
+                    .then(function(data){
+                        var arr = Array.isArray(data) ? data : (data ? [data] : []);
+                        oModel.setProperty("/salesOrders", arr);
+
+                        if(!arr || arr.length === 0){
+                            MessageBox.warning("No Sales Orders available.");
+                            return;
+                        }
+
+                        var oDialog = new Dialog({
+                            title: "Select SO Number",
+                            contentWidth: "500px",
+                            contentHeight: "300px",
+                            verticalScrolling: true,
+                            content: [new List({
+                                mode: "SingleSelectMaster",
+                                growing: true,
+                                growingThreshold: 10,
+                                growingScrollToLoad: true,
+                                items: {
+                                    path: "/salesOrders",
+                                    template: new StandardListItem({
+                                        title: "SO Number: {salesOrderNumber}",
+                                        description: "Order Date: {dateOfOrder} | Customer: {customer/name}"
+                                    })
+                                }
+                            })],
+                            beginButton: new sap.m.Button({
+                                text: "Select",
+                                press: function(){
+                                    var oList         = oDialog.getContent()[0];
+                                    var oSelectedItem = oList.getSelectedItem();
+                                    if(!oSelectedItem){
+                                        MessageBox.warning("Please select a SO Number");
+                                        return;
+                                    }
+                                    var oSelectedSo = oSelectedItem.getBindingContext().getObject();
+                                    oModel.setProperty("/readSearchSoNumber", String(oSelectedSo.salesOrderNumber));
+                                    oDialog.close();
+                                    that.onReadSearchBySoNumber();
+                                }
+                            }),
+                            endButton: new sap.m.Button({
+                                text: "Cancel",
+                                press: function(){ oDialog.close(); }
+                            })
+                        });
+                        oDialog.setModel(oModel);
+                        oDialog.open();
+                    })
+                    .catch(function(){
+                        MessageBox.error("Failed to load Sales Orders");
+                    });
+            },
+
+            /* =========================
+            SO NUMBER F4 HELP (UPDATE)
+            ========================= */
+
+            onUpdateSoNumberF4Help: function(){
+                var oModel = this.getView().getModel();
+                var that   = this;
+
+                service.callService("/salesorderheader", "GET", {})
+                    .then(function(data){
+                        var arr = Array.isArray(data) ? data : (data ? [data] : []);
+                        oModel.setProperty("/salesOrders", arr);
+
+                        if(!arr || arr.length === 0){
+                            MessageBox.warning("No Sales Orders available.");
+                            return;
+                        }
+
+                        var oDialog = new Dialog({
+                            title: "Select SO Number",
+                            contentWidth: "500px",
+                            contentHeight: "300px",
+                            verticalScrolling: true,
+                            content: [new List({
+                                mode: "SingleSelectMaster",
+                                growing: true,
+                                growingThreshold: 10,
+                                growingScrollToLoad: true,
+                                items: {
+                                    path: "/salesOrders",
+                                    template: new StandardListItem({
+                                        title: "SO Number: {salesOrderNumber}",
+                                        description: "Order Date: {dateOfOrder} | Customer: {customer/name}"
+                                    })
+                                }
+                            })],
+                            beginButton: new sap.m.Button({
+                                text: "Select",
+                                press: function(){
+                                    var oList         = oDialog.getContent()[0];
+                                    var oSelectedItem = oList.getSelectedItem();
+                                    if(!oSelectedItem){
+                                        MessageBox.warning("Please select a SO Number");
+                                        return;
+                                    }
+                                    var oSelectedSo = oSelectedItem.getBindingContext().getObject();
+                                    oModel.setProperty("/searchSoNumber", String(oSelectedSo.salesOrderNumber));
+                                    oDialog.close();
+                                    that.onSearchBySoNumber();
+                                }
+                            }),
+                            endButton: new sap.m.Button({
+                                text: "Cancel",
+                                press: function(){ oDialog.close(); }
+                            })
+                        });
+                        oDialog.setModel(oModel);
+                        oDialog.open();
+                    })
+                    .catch(function(){
+                        MessageBox.error("Failed to load Sales Orders");
+                    });
             },
 
             /* =========================
@@ -295,8 +426,12 @@ sap.ui.define(
                 oModel.setProperty("/showCreatePanel",       false);
                 oModel.setProperty("/showReadPanel",         true);
                 oModel.setProperty("/showUpdatePanel",       false);
+                // ✅ Reset everything — tables hidden, user must click Search
                 oModel.setProperty("/showReadResult",        false);
+                oModel.setProperty("/showItemsTable",        false);
                 oModel.setProperty("/readSearchSoNumber",    "");
+                oModel.setProperty("/salesOrders",           []);
+                oModel.setProperty("/salesOrderItems",       []);
             },
 
             onSelectUpdate: function(){
@@ -322,18 +457,12 @@ sap.ui.define(
                 oModel.setProperty("/showUpdatePanel",       false);
                 this.resetAllData();
             },
-
-            /* =========================
-            CREATE — ADD ITEM ROW
-            ========================= */
-
-            onAddItem: function(){
-                var oModel = this.getView().getModel();
-                var items  = oModel.getProperty("/createPayload/items") || [];
-                items.push({ "material": "", "quantity": null, "uom": "" });
-                oModel.setProperty("/createPayload/items", items);
-                this.getView().byId("createItemsTable").setVisibleRowCount(items.length);
-            },
+			
+			onBackOpScreen: function(){
+			    /*var oRouter = sap.ui.core.UIComponent.getRouterFor(this);
+			    oRouter.navTo("RouteHome");*/ 
+				this.getOwnerComponent().getRouter().navTo("RouteHome");
+			},
 
             /* =========================
             CREATE — SAVE
@@ -349,16 +478,14 @@ sap.ui.define(
                     return;
                 }
 
-                var items = oPayload.items || [];
-                for(var i = 0; i < items.length; i++){
-                    if(!items[i].material || String(items[i].material).trim() === ""){
-                        MessageBox.error("Item " + (i + 1) + ": Material is required.");
-                        return;
-                    }
-                    if(!items[i].quantity){
-                        MessageBox.error("Item " + (i + 1) + ": Quantity is required.");
-                        return;
-                    }
+                // Filter out empty rows
+                var items = (oPayload.items || []).filter(function(item){
+                    return item.material && String(item.material).trim() !== "" && item.quantity;
+                });
+
+                if(items.length === 0){
+                    MessageBox.error("Please fill in at least one item row completely.");
+                    return;
                 }
 
                 var soNumberEntered = oPayload.salesOrderNumber ? String(oPayload.salesOrderNumber).trim() : "";
@@ -442,16 +569,30 @@ sap.ui.define(
                 var soNumber = oModel.getProperty("/readSearchSoNumber");
                 var that     = this;
 
+                // ✅ Empty field → show all headers only, no items
                 if(!soNumber || String(soNumber).trim() === ""){
-                    MessageBox.error("Please enter a SO Number");
+                    service.callService("/salesorderheader", "GET", {})
+                        .then(function(data){
+                            var arr = Array.isArray(data) ? data : (data ? [data] : []);
+                            oModel.setProperty("/salesOrders", arr);
+                            that.getView().byId("idHeaderTable").bindRows("/salesOrders");
+                            that.getView().byId("idHeaderTable").setVisibleRowCount(arr.length || 1);
+                            oModel.setProperty("/showReadResult", true);
+                            oModel.setProperty("/showItemsTable", false);
+                        })
+                        .catch(function(){
+                            MessageBox.error("Failed to load Sales Orders");
+                        });
                     return;
                 }
 
+                // ✅ SO number entered → show header + items for that SO
                 service.callService("/salesorderheader/" + soNumber, "GET", {})
                     .then(function(headerData){
                         if(!headerData || !headerData.salesOrderNumber){
                             MessageBox.error("SO Number not found");
                             oModel.setProperty("/showReadResult", false);
+                            oModel.setProperty("/showItemsTable", false);
                             return;
                         }
                         oModel.setProperty("/salesOrders", [headerData]);
@@ -468,11 +609,13 @@ sap.ui.define(
                                 that.getView().byId("idItemTable").bindRows("/salesOrderItems");
                                 that.getView().byId("idItemTable").setVisibleRowCount(items.length || 1);
                                 oModel.setProperty("/showReadResult", true);
+                                oModel.setProperty("/showItemsTable", true);
                             });
                     })
                     .catch(function(err){
                         MessageBox.error("SO Number not found");
                         oModel.setProperty("/showReadResult", false);
+                        oModel.setProperty("/showItemsTable", false);
                         console.error(err);
                     });
             },
@@ -481,56 +624,54 @@ sap.ui.define(
             UPDATE — SEARCH BY SO NUMBER
             ========================= */
 
-			onSearchBySoNumber: function(){
-			    var oModel   = this.getView().getModel();
-			    var soNumber = oModel.getProperty("/searchSoNumber");
-			    var that     = this;
+            onSearchBySoNumber: function(){
+                var oModel   = this.getView().getModel();
+                var soNumber = oModel.getProperty("/searchSoNumber");
+                var that     = this;
 
-			    if(!soNumber || String(soNumber).trim() === ""){
-			        MessageBox.error("Please enter a SO Number");
-			        return;
-			    }
+                if(!soNumber || String(soNumber).trim() === ""){
+                    MessageBox.error("Please enter a SO Number");
+                    return;
+                }
 
-			    service.callService("/salesorderheader/" + soNumber, "GET", {})
-			        .then(function(headerData){
-			            if(!headerData || !headerData.salesOrderNumber){
-			                MessageBox.error("SO Number not found");
-			                oModel.setProperty("/showSoSearchResult", false);
-			                return;
-			            }
+                service.callService("/salesorderheader/" + soNumber, "GET", {})
+                    .then(function(headerData){
+                        if(!headerData || !headerData.salesOrderNumber){
+                            MessageBox.error("SO Number not found");
+                            oModel.setProperty("/showSoSearchResult", false);
+                            return;
+                        }
+                        oModel.setProperty("/filteredSoHeader", [headerData]);
 
-			            // Wrap in array so t:Table can bind to it
-			            oModel.setProperty("/filteredSoHeader", [headerData]);
-
-			            return service.callService("/salesorderitem", "GET", {})
-			                .then(function(allItems){
-			                    var items = (allItems || []).filter(function(item){
-			                        return item.salesOrderHeader &&
-			                               item.salesOrderHeader.salesOrderNumber === parseInt(soNumber);
-			                    });
-			                    oModel.setProperty("/filteredSoItems", items);
-			                    oModel.setProperty("/showSoSearchResult", true);
-			                    that.getView().byId("updateItemsTable").setVisibleRowCount(items.length || 1);
-			                    that.getView().byId("updateHeaderTable").setVisibleRowCount(1);
-			                });
-			        })
-			        .catch(function(err){
-			            MessageBox.error("SO Number not found");
-			            oModel.setProperty("/showSoSearchResult", false);
-			            console.error(err);
-			        });
-			},
+                        return service.callService("/salesorderitem", "GET", {})
+                            .then(function(allItems){
+                                var items = (allItems || []).filter(function(item){
+                                    return item.salesOrderHeader &&
+                                           item.salesOrderHeader.salesOrderNumber === parseInt(soNumber);
+                                });
+                                oModel.setProperty("/filteredSoItems", items);
+                                oModel.setProperty("/showSoSearchResult", true);
+                                that.getView().byId("updateItemsTable").setVisibleRowCount(items.length || 1);
+                                that.getView().byId("updateHeaderTable").setVisibleRowCount(1);
+                            });
+                    })
+                    .catch(function(err){
+                        MessageBox.error("SO Number not found");
+                        oModel.setProperty("/showSoSearchResult", false);
+                        console.error(err);
+                    });
+            },
 
             /* =========================
             UPDATE — SAVE
             ========================= */
 
             onUpdateItem: function(){
-                var oModel = this.getView().getModel();
+                var oModel      = this.getView().getModel();
                 var headerArray = oModel.getProperty("/filteredSoHeader");
-				var header      = headerArray && headerArray[0];  
-                var items  = oModel.getProperty("/filteredSoItems");
-                var that   = this;
+                var header      = headerArray && headerArray[0];
+                var items       = oModel.getProperty("/filteredSoItems");
+                var that        = this;
 
                 if(!header || !header.salesOrderNumber){
                     MessageBox.error("No Sales Order loaded");
@@ -591,10 +732,12 @@ sap.ui.define(
                     "dateOfDelivery":   null,
                     "customer":         { "customerId": null, "name": "" },
                     "items": [
+                        { "material": "", "quantity": null, "uom": "" },
+                        { "material": "", "quantity": null, "uom": "" },
                         { "material": "", "quantity": null, "uom": "" }
                     ]
                 });
-                this.getView().byId("createItemsTable").setVisibleRowCount(1);
+                this.getView().byId("createItemsTable").setVisibleRowCount(3);
                 oModel.setProperty("/editItemPayload", {
                     "itemNumber":       null,
                     "material":         "",
@@ -609,7 +752,10 @@ sap.ui.define(
                 oModel.setProperty("/filteredSoHeader",   null);
                 oModel.setProperty("/filteredSoItems",    []);
                 oModel.setProperty("/showReadResult",     false);
+                oModel.setProperty("/showItemsTable",     false);
                 oModel.setProperty("/showSoSearchResult", false);
+                oModel.setProperty("/salesOrders",        []);
+                oModel.setProperty("/salesOrderItems",    []);
             }
 
         });

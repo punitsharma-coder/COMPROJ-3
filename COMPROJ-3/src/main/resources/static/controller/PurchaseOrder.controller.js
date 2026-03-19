@@ -9,24 +9,21 @@ sap.ui.define(
         "sap/m/StandardListItem",
         "sap/ui/model/json/JSONModel"
     ],
-    function(Controller, jQuery, service, MessageBox, Dialog, List, StandardListItem, JSONModel) {
+    function(Controller, jQuery, service, MessageBox, Dialog, List, StandardListItem, JSONModel){
 
         return Controller.extend("punit.controller.PurchaseOrder", {
 
-            onInit: function() {
-
+            onInit: function(){
                 var oModel = new JSONModel();
-
                 oModel.setData({
                     "createPayload": {
-						"poId": null,
+                        "poId":         null,
                         "orderDate":    null,
                         "deliveryDate": null,
-                        "vendor": {
-                            "vendorId": null,
-                            "name": ""
-                        },
+                        "vendor": { "vendorId": null, "name": "" },
                         "items": [
+                            { "material": "", "quantity": null, "uom": "" },
+                            { "material": "", "quantity": null, "uom": "" },
                             { "material": "", "quantity": null, "uom": "" }
                         ]
                     },
@@ -37,20 +34,25 @@ sap.ui.define(
                         "uom":           "",
                         "purchaseOrder": { "poId": null }
                     },
-					"purchaseOrders":      [],
+                    "purchaseOrders":      [],
                     "purchaseOrderItems":  [],
                     "vendorList":          [],
                     "productList":         [],
-                    "searchItemId":          "",
-                    "editItemMode":          false,
+                    "searchItemId":        "",
+                    "searchPoNumber":      "",
+                    "readSearchPoNumber":  "",
+                    "filteredPoHeader":    null,
+                    "filteredPoItems":     [],
+                    "showReadResult":      false,
+                    "showItemsTable":      false,
+                    "showPoSearchResult":  false,
+                    "editItemMode":        false,
                     "showOperationSelector": true,
                     "showCreatePanel":       false,
                     "showReadPanel":         false,
                     "showUpdatePanel":       false
                 });
-
                 this.getView().setModel(oModel);
-
                 this.loadVendorsForF4();
                 this.loadProductsForF4();
             },
@@ -59,16 +61,15 @@ sap.ui.define(
             LOAD VENDORS
             ========================= */
 
-            loadVendorsForF4: function() {
+            loadVendorsForF4: function(){
                 var that = this;
                 service.callService("/vendors", "GET", {})
-                    .then(function(data) {
-						var oModel = that.getView().getModel();
+                    .then(function(data){
+                        var oModel = that.getView().getModel();
                         var arr = Array.isArray(data) ? data : (data ? [data] : []);
-						
                         oModel.setProperty("/vendorList", arr);
                     })
-                    .catch(function(err) {
+                    .catch(function(){
                         MessageBox.error("Failed to load vendors");
                     });
             },
@@ -77,204 +78,377 @@ sap.ui.define(
             LOAD PRODUCTS
             ========================= */
 
-            loadProductsForF4: function() {
+            loadProductsForF4: function(){
                 var that = this;
                 service.callService("/product", "GET", {})
-                    .then(function(data) {
-						var oModel = that.getView().getModel();
+                    .then(function(data){
+                        var oModel = that.getView().getModel();
                         var arr = Array.isArray(data) ? data : (data ? [data] : []);
                         oModel.setProperty("/productList", arr);
                     })
-                    .catch(function(err) {
+                    .catch(function(){
                         MessageBox.error("Failed to load products");
                     });
             },
 
             /* =========================
-            VENDOR F4 HELP
+            VENDOR F4 HELP (CREATE)
             ========================= */
 
-            onVendorF4Help: function() {
-				
-                var oModel = this.getView().getModel();
-
+            onVendorF4Help: function(){
+                var oModel     = this.getView().getModel();
                 var vendorList = oModel.getProperty("/vendorList") || [];
-                if (!vendorList || vendorList.length === 0) {
+
+                if(!vendorList || vendorList.length === 0){
                     MessageBox.warning("No vendors available. Please create vendors first.");
                     return;
                 }
 
-				var dialog = new Dialog({
+                var oDialog = new Dialog({
                     title: "Select Vendor",
                     contentWidth: "500px",
                     contentHeight: "300px",
                     verticalScrolling: true,
-                    content: [
-                        new List({
-                            mode: "SingleSelectMaster",
-                            growing: true,
-                            growingThreshold: 5,
-                            growingScrollToLoad: true,
-                            items: {
-                                path: "/vendorList",
-                                template: new StandardListItem({
-                                    title: "{name}",
-                                    description: "ID: {vendorId}"
-                                })
-                            }
-                        })
-                    ],
+                    content: [new List({
+                        mode: "SingleSelectMaster",
+                        growing: true,
+                        growingThreshold: 5,
+                        growingScrollToLoad: true,
+                        items: {
+                            path: "/vendorList",
+                            template: new StandardListItem({
+                                title: "{name}",
+                                description: "ID: {vendorId}"
+                            })
+                        }
+                    })],
                     beginButton: new sap.m.Button({
                         text: "Select",
-                        press: function() {
-                            var olist = dialog.getContent()[0];
-                            var oSelectedItem  = olist.getSelectedItem();
-                            if (!oSelectedItem) {
+                        press: function(){
+                            var oList         = oDialog.getContent()[0];
+                            var oSelectedItem = oList.getSelectedItem();
+                            if(!oSelectedItem){
                                 MessageBox.warning("Please select a vendor");
                                 return;
                             }
-                            var oSelectedVendor = oSelectedItem.getBindingContext().getObject();
-							oModel.setProperty("/createPayload/vendor", {
-								"vendorId": oSelectedVendor.vendorId,
-							    "name": oSelectedVendor.name
-							})
-                           
-                            dialog.close();
+                            var oSelected = oSelectedItem.getBindingContext().getObject();
+                            oModel.setProperty("/createPayload/vendor", {
+                                "vendorId": oSelected.vendorId,
+                                "name":     oSelected.name
+                            });
+                            oDialog.close();
                         }
                     }),
                     endButton: new sap.m.Button({
                         text: "Cancel",
-                        press: function() { dialog.close(); }
+                        press: function(){ oDialog.close(); }
                     })
                 });
-
-                dialog.setModel(oModel);
-                dialog.open();
+                oDialog.setModel(oModel);
+                oDialog.open();
             },
 
             /* =========================
-            MATERIAL F4 HELP
+            VENDOR F4 HELP (UPDATE)
             ========================= */
 
-			onMaterialF4Help: function(oEvent){
-			                
-			                var oModel  = this.getView().getModel();
-			                var productList = oModel.getProperty("/productList") || [];
-			                console.log("=== Material F4 Help Dialog ===");
-			                console.log("Opening Material F4 Help with", productList.length, "products");
-			                if(!productList || productList.length === 0){
-			                    MessageBox.warning("No products available. Please create products first.");
-			                    return;
-			                }
+            onUpdateVendorF4Help: function(){
+                var oModel     = this.getView().getModel();
+                var vendorList = oModel.getProperty("/vendorList") || [];
 
-			                // ✅ Get the row index from the button's binding context so we know which item to update
-			                var oButton     = oEvent.getSource();
-			                var oContext    = oButton.getBindingContext();
-			                var sPath       = oContext ? oContext.getPath() : null;   // e.g. "/createPayload/items/0"
-			                var iRowIndex   = sPath ? parseInt(sPath.split("/").pop()) : null;
-			                console.log("Material F4 triggered for row index:", iRowIndex);
+                if(!vendorList || vendorList.length === 0){
+                    MessageBox.warning("No vendors available. Please create vendors first.");
+                    return;
+                }
 
-			                var oDialog = new Dialog({
-			                    title: "Select Material",
-			                    width: "600px",
-			                    height: "500px",
-			                    draggable: true,
-			                    resizable: true,
-			                    content: [new List({
-			                        mode: "SingleSelectMaster",
-			                        growing: true,
-			                        growingThreshold: 5,
-			                        growingScrollToLoad: true,
-			                        items: {
-			                            path: "/productList",
-			                            template: new StandardListItem({
-			                                title: "{name}",
-			                                description: "Type: {type} | Sector: {sector} | UOM: {uom}"
-			                            })
-			                        }
-			                    })],
-			                    beginButton: new sap.m.Button({
-			                        text: "Select",
-			                        press: function(){
-			                            var oList            = oDialog.getContent()[0];
-			                            var oSelectedItem    = oList.getSelectedItem();
-			                            console.log("Selected Item:", oSelectedItem);
-			                            if(!oSelectedItem){
-			                                MessageBox.warning("Please select a material");
-			                                return;
-			                            }
-			                            var oSelectedProduct = oSelectedItem.getBindingContext().getObject();
-			                            console.log("Selected Product:", oSelectedProduct);
-			                            console.log("Setting material:", oSelectedProduct.name);
-			                            console.log("Auto-filling UOM:", oSelectedProduct.uom);
-
-			                            // ✅ Duplicate check — same material cannot be added twice
-			                            var aItems = oModel.getProperty("/createPayload/items");
-			                            var bAlreadyExists = aItems.some(function(oItem, iIndex){
-			                                // skip the current row itself when checking
-			                                return iIndex !== iRowIndex && oItem.material === oSelectedProduct.name;
-			                            });
-			                            if(bAlreadyExists){
-			                                MessageBox.warning(
-			                                    "Material '" + oSelectedProduct.name + "' is already added in another row. Please select a different material."
-			                                );
-			                                // dialog stays open — user can pick again
-			                                return;
-			                            }
-
-			                            // ✅ Update the correct row in the items array
-			                            if(iRowIndex !== null && aItems[iRowIndex] !== undefined){
-			                                aItems[iRowIndex].material = oSelectedProduct.name;
-			                                // ✅ Auto-fill UOM from product — saves the user an extra step
-			                                aItems[iRowIndex].uom = oSelectedProduct.uom;
-			                                oModel.setProperty("/createPayload/items", aItems);
-			                            }
-			                            oDialog.close();
-			                        }
-			                    }),
-			                    endButton: new sap.m.Button({
-			                        text: "Cancel",
-			                        press: function(){
-			                            oDialog.close();
-			                        }
-			                    })
-			                });
-			                oDialog.setModel(oModel);
-			                console.log("Opening material dialog with model bound");
-			                oDialog.open();
-			            },
+                var oDialog = new Dialog({
+                    title: "Select Vendor",
+                    contentWidth: "500px",
+                    contentHeight: "300px",
+                    verticalScrolling: true,
+                    content: [new List({
+                        mode: "SingleSelectMaster",
+                        growing: true,
+                        growingThreshold: 5,
+                        growingScrollToLoad: true,
+                        items: {
+                            path: "/vendorList",
+                            template: new StandardListItem({
+                                title: "{name}",
+                                description: "ID: {vendorId}"
+                            })
+                        }
+                    })],
+                    beginButton: new sap.m.Button({
+                        text: "Select",
+                        press: function(){
+                            var oList         = oDialog.getContent()[0];
+                            var oSelectedItem = oList.getSelectedItem();
+                            if(!oSelectedItem){
+                                MessageBox.warning("Please select a vendor");
+                                return;
+                            }
+                            var oSelected     = oSelectedItem.getBindingContext().getObject();
+                            var headerArray   = oModel.getProperty("/filteredPoHeader");
+                            headerArray[0].vendor = {
+                                vendorId: oSelected.vendorId,
+                                name:     oSelected.name
+                            };
+                            oModel.setProperty("/filteredPoHeader", headerArray);
+                            oModel.refresh(true);
+                            oDialog.close();
+                        }
+                    }),
+                    endButton: new sap.m.Button({
+                        text: "Cancel",
+                        press: function(){ oDialog.close(); }
+                    })
+                });
+                oDialog.setModel(oModel);
+                oDialog.open();
+            },
 
             /* =========================
-            OPERATION BUTTONS
+            MATERIAL F4 HELP (CREATE)
             ========================= */
 
-            onSelectCreate: function() {
-                var m = this.getView().getModel();
-                m.setProperty("/showOperationSelector", false);
-                m.setProperty("/showCreatePanel",       true);
-                m.setProperty("/showReadPanel",         false);
-                m.setProperty("/showUpdatePanel",       false);
+            onMaterialF4Help: function(oEvent){
+                var oModel      = this.getView().getModel();
+                var productList = oModel.getProperty("/productList") || [];
+
+                if(!productList || productList.length === 0){
+                    MessageBox.warning("No products available. Please create products first.");
+                    return;
+                }
+
+                var oButton   = oEvent.getSource();
+                var oContext  = oButton.getBindingContext();
+                var sPath     = oContext ? oContext.getPath() : null;
+                var iRowIndex = sPath ? parseInt(sPath.split("/").pop()) : null;
+
+                var oDialog = new Dialog({
+                    title: "Select Material",
+                    contentWidth: "500px",
+                    contentHeight: "300px",
+                    verticalScrolling: true,
+                    content: [new List({
+                        mode: "SingleSelectMaster",
+                        growing: true,
+                        growingThreshold: 5,
+                        growingScrollToLoad: true,
+                        items: {
+                            path: "/productList",
+                            template: new StandardListItem({
+                                title: "{name}",
+                                description: "Type: {type} | Sector: {sector} | UOM: {uom}"
+                            })
+                        }
+                    })],
+                    beginButton: new sap.m.Button({
+                        text: "Select",
+                        press: function(){
+                            var oList            = oDialog.getContent()[0];
+                            var oSelectedItem    = oList.getSelectedItem();
+                            if(!oSelectedItem){
+                                MessageBox.warning("Please select a material");
+                                return;
+                            }
+                            var oSelectedProduct = oSelectedItem.getBindingContext().getObject();
+                            var aItems           = oModel.getProperty("/createPayload/items");
+                            var bAlreadyExists   = aItems.some(function(oItem, iIndex){
+                                return iIndex !== iRowIndex && oItem.material === oSelectedProduct.name;
+                            });
+                            if(bAlreadyExists){
+                                MessageBox.warning(
+                                    "Material '" + oSelectedProduct.name + "' is already added. Please select a different material."
+                                );
+                                return;
+                            }
+                            if(iRowIndex !== null && aItems[iRowIndex] !== undefined){
+                                aItems[iRowIndex].material = oSelectedProduct.name;
+                                aItems[iRowIndex].uom      = oSelectedProduct.uom;
+                                oModel.setProperty("/createPayload/items", aItems);
+                            }
+                            oDialog.close();
+                        }
+                    }),
+                    endButton: new sap.m.Button({
+                        text: "Cancel",
+                        press: function(){ oDialog.close(); }
+                    })
+                });
+                oDialog.setModel(oModel);
+                oDialog.open();
             },
 
-            onSelectRead: function() {
-                var m = this.getView().getModel();
-                m.setProperty("/showOperationSelector", false);
-                m.setProperty("/showCreatePanel",       false);
-                m.setProperty("/showReadPanel",         true);
-                m.setProperty("/showUpdatePanel",       false);
-                this.onLoadData();
+            /* =========================
+            PO NUMBER F4 HELP (READ)
+            ========================= */
+
+            onReadPoNumberF4Help: function(){
+                var oModel = this.getView().getModel();
+                var that   = this;
+
+                service.callService("/purchaseorderheader", "GET", {})
+                    .then(function(data){
+                        var arr = Array.isArray(data) ? data : (data ? [data] : []);
+                        oModel.setProperty("/purchaseOrders", arr);
+
+                        if(!arr || arr.length === 0){
+                            MessageBox.warning("No Purchase Orders available.");
+                            return;
+                        }
+
+                        var oDialog = new Dialog({
+                            title: "Select PO Number",
+                            contentWidth: "500px",
+                            contentHeight: "300px",
+                            verticalScrolling: true,
+                            content: [new List({
+                                mode: "SingleSelectMaster",
+                                growing: true,
+                                growingThreshold: 10,
+                                growingScrollToLoad: true,
+                                items: {
+                                    path: "/purchaseOrders",
+                                    template: new StandardListItem({
+                                        title: "PO Number: {poId}",
+                                        description: "Order Date: {orderDate} | Vendor: {vendor/name}"
+                                    })
+                                }
+                            })],
+                            beginButton: new sap.m.Button({
+                                text: "Select",
+                                press: function(){
+                                    var oList         = oDialog.getContent()[0];
+                                    var oSelectedItem = oList.getSelectedItem();
+                                    if(!oSelectedItem){
+                                        MessageBox.warning("Please select a PO Number");
+                                        return;
+                                    }
+                                    var oSelected = oSelectedItem.getBindingContext().getObject();
+                                    oModel.setProperty("/readSearchPoNumber", String(oSelected.poId));
+                                    oDialog.close();
+                                    that.onReadSearchByPoNumber();
+                                }
+                            }),
+                            endButton: new sap.m.Button({
+                                text: "Cancel",
+                                press: function(){ oDialog.close(); }
+                            })
+                        });
+                        oDialog.setModel(oModel);
+                        oDialog.open();
+                    })
+                    .catch(function(){
+                        MessageBox.error("Failed to load Purchase Orders");
+                    });
             },
 
-            onSelectUpdate: function() {
-                var m = this.getView().getModel();
-                m.setProperty("/showOperationSelector", false);
-                m.setProperty("/showCreatePanel",       false);
-                m.setProperty("/showReadPanel",         false);
-                m.setProperty("/showUpdatePanel",       true);
-                m.setProperty("/editItemMode",  false);
-                m.setProperty("/searchItemId",  "");
+            /* =========================
+            PO NUMBER F4 HELP (UPDATE)
+            ========================= */
+
+            onUpdatePoNumberF4Help: function(){
+                var oModel = this.getView().getModel();
+                var that   = this;
+
+                service.callService("/purchaseorderheader", "GET", {})
+                    .then(function(data){
+                        var arr = Array.isArray(data) ? data : (data ? [data] : []);
+                        oModel.setProperty("/purchaseOrders", arr);
+
+                        if(!arr || arr.length === 0){
+                            MessageBox.warning("No Purchase Orders available.");
+                            return;
+                        }
+
+                        var oDialog = new Dialog({
+                            title: "Select PO Number",
+                            contentWidth: "500px",
+                            contentHeight: "300px",
+                            verticalScrolling: true,
+                            content: [new List({
+                                mode: "SingleSelectMaster",
+                                growing: true,
+                                growingThreshold: 10,
+                                growingScrollToLoad: true,
+                                items: {
+                                    path: "/purchaseOrders",
+                                    template: new StandardListItem({
+                                        title: "PO Number: {poId}",
+                                        description: "Order Date: {orderDate} | Vendor: {vendor/name}"
+                                    })
+                                }
+                            })],
+                            beginButton: new sap.m.Button({
+                                text: "Select",
+                                press: function(){
+                                    var oList         = oDialog.getContent()[0];
+                                    var oSelectedItem = oList.getSelectedItem();
+                                    if(!oSelectedItem){
+                                        MessageBox.warning("Please select a PO Number");
+                                        return;
+                                    }
+                                    var oSelected = oSelectedItem.getBindingContext().getObject();
+                                    oModel.setProperty("/searchPoNumber", String(oSelected.poId));
+                                    oDialog.close();
+                                    that.onSearchByPoNumber();
+                                }
+                            }),
+                            endButton: new sap.m.Button({
+                                text: "Cancel",
+                                press: function(){ oDialog.close(); }
+                            })
+                        });
+                        oDialog.setModel(oModel);
+                        oDialog.open();
+                    })
+                    .catch(function(){
+                        MessageBox.error("Failed to load Purchase Orders");
+                    });
             },
-			// BACK / GLOBAL 
+
+            /* =========================
+            OPERATION SELECTION
+            ========================= */
+
+            onSelectCreate: function(){
+                var oModel = this.getView().getModel();
+                oModel.setProperty("/showOperationSelector", false);
+                oModel.setProperty("/showCreatePanel",       true);
+                oModel.setProperty("/showReadPanel",         false);
+                oModel.setProperty("/showUpdatePanel",       false);
+            },
+
+            onSelectRead: function(){
+                var oModel = this.getView().getModel();
+                oModel.setProperty("/showOperationSelector", false);
+                oModel.setProperty("/showCreatePanel",       false);
+                oModel.setProperty("/showReadPanel",         true);
+                oModel.setProperty("/showUpdatePanel",       false);
+                oModel.setProperty("/showReadResult",        false);
+                oModel.setProperty("/showItemsTable",        false);
+                oModel.setProperty("/readSearchPoNumber",    "");
+                oModel.setProperty("/purchaseOrders",        []);
+                oModel.setProperty("/purchaseOrderItems",    []);
+            },
+
+            onSelectUpdate: function(){
+                var oModel = this.getView().getModel();
+                oModel.setProperty("/showOperationSelector", false);
+                oModel.setProperty("/showCreatePanel",       false);
+                oModel.setProperty("/showReadPanel",         false);
+                oModel.setProperty("/showUpdatePanel",       true);
+                oModel.setProperty("/editItemMode",          false);
+                oModel.setProperty("/searchPoNumber",        "");
+                oModel.setProperty("/showPoSearchResult",    false);
+            },
+
+            /* =========================
+            BACK
+            ========================= */
+
             onBack: function(){
                 var oModel = this.getView().getModel();
                 oModel.setProperty("/showOperationSelector", true);
@@ -284,100 +458,76 @@ sap.ui.define(
                 this.resetAllData();
             },
 
-            /* =========================
-            ADD ITEM ROW
-            ========================= */
-
-            onAddItem: function() {
-                var m     = this.getView().getModel();
-                var items = m.getProperty("/createPayload/items");
-                items.push({ "material": "", "quantity": null, "uom": "" });
-                m.setProperty("/createPayload/items", items);
-                this.getView().byId("createItemsTable").setVisibleRowCount(items.length);
+            onBackOpScreen: function(){
+                this.getOwnerComponent().getRouter().navTo("RouteHome");
             },
 
             /* =========================
-            SAVE PURCHASE ORDER
-            Step 1: POST header only (no items)
-            Step 2: POST each item separately via _createAllPoItems
+            CREATE — SAVE
             ========================= */
 
-            onSaveCombined: function() {
+            onSaveCombined: function(){
                 var oModel  = this.getView().getModel();
                 var payload = oModel.getProperty("/createPayload");
                 var that    = this;
 
-                if (!payload.orderDate || !payload.vendor || !payload.vendor.vendorId) {
+                if(!payload.orderDate || !payload.vendor || !payload.vendor.vendorId){
                     MessageBox.error("Order Date and Vendor are required.");
                     return;
                 }
 
-                var items = payload.items || [];
-                for (var i = 0; i < items.length; i++) {
-                    if (!items[i].material || String(items[i].material).trim() === "") {
-                        MessageBox.error("Item " + (i + 1) + ": Material is required.");
-                        return;
-                    }
-                    if (!items[i].quantity) {
-                        MessageBox.error("Item " + (i + 1) + ": Quantity is required.");
-                        return;
-                    }
+                // Filter out empty rows
+                var items = (payload.items || []).filter(function(item){
+                    return item.material && String(item.material).trim() !== "" && item.quantity;
+                });
+
+                if(items.length === 0){
+                    MessageBox.error("Please fill in at least one item row completely.");
+                    return;
                 }
-				
-				var poIdEntered = payload.poId ? String(payload.poId).trim() : "";
+
+                var poIdEntered = payload.poId ? String(payload.poId).trim() : "";
                 if(poIdEntered !== ""){
                     service.callService("/purchaseorderheader/" + poIdEntered, "GET", {})
                         .then(function(existingHeader){
                             if(!existingHeader || !existingHeader.poId){
-                                MessageBox.error("That PO Number doesn't exist. Please enter a valid SO Number or leave it blank to auto-generate.");
+                                MessageBox.error("That PO Number doesn't exist. Please leave it blank to auto-generate.");
                                 return;
                             }
-                            // ✅ CHANGED: call _createAllItems instead of _createItemOnly
-                            that._createAllItems(parseInt(existingHeader.poId), items);
+                            that._createAllPoItems(parseInt(existingHeader.poId), items);
                         })
                         .catch(function(err){
-                            MessageBox.error("That PO Number doesn't exist. Please enter a valid SO Number or leave it blank to auto-generate.");
+                            MessageBox.error("That PO Number doesn't exist. Please leave it blank to auto-generate.");
                             console.error(err);
                         });
                 } else {
-                    // ✅ CHANGED: call _createHeaderThenAllItems instead of _createHeaderThenItem
                     that._createHeaderThenAllItems(payload, items);
                 }
             },
 
-            /* =========================
-            STEP 1: POST HEADER ONLY
-            ========================= */
-
-            _createHeaderThenAllItems: function(payload, items) {
-                var that = this;
-
+            _createHeaderThenAllItems: function(payload, items){
+                var that          = this;
                 var headerPayload = {
                     "orderDate":    payload.orderDate,
                     "deliveryDate": payload.deliveryDate,
-                    "vendor":        { "vendorId": payload.vendor.vendorId }
+                    "vendor":       { "vendorId": payload.vendor.vendorId }
                 };
-
                 service.callService("/purchaseorderheader", "POST", headerPayload)
-                    .then(function(headerResponse) {
+                    .then(function(headerResponse){
                         return that._createAllPoItems(headerResponse.poId, items);
                     })
-                    .catch(function(err) {
+                    .catch(function(err){
                         MessageBox.error("Error creating Purchase Order Header.");
                         console.error(err);
                     });
             },
 
-            /* =========================
-            STEP 2: POST ITEMS ONE BY ONE
-            ========================= */
-
-            _createAllPoItems: function(poId, items) {
+            _createAllPoItems: function(poId, items){
                 var that         = this;
                 var createdItems = [];
 
-                var chain = items.reduce(function(promiseChain, item) {
-                    return promiseChain.then(function() {
+                var chain = items.reduce(function(promiseChain, item){
+                    return promiseChain.then(function(){
                         var itemPayload = {
                             "material":      item.material,
                             "quantity":      item.quantity ? parseInt(item.quantity) : null,
@@ -385,15 +535,15 @@ sap.ui.define(
                             "purchaseOrder": { "poId": parseInt(poId) }
                         };
                         return service.callService("/purchaseorderitem", "POST", itemPayload)
-                            .then(function(itemResponse) {
+                            .then(function(itemResponse){
                                 createdItems.push(itemResponse);
                             });
                     });
                 }, Promise.resolve());
 
                 return chain
-                    .then(function() {
-                        var itemIds = createdItems.map(function(i) { return i.poItemId; }).join(", ");
+                    .then(function(){
+                        var itemIds = createdItems.map(function(i){ return i.poItemId; }).join(", ");
                         MessageBox.success(
                             "Purchase Order created successfully!\n" +
                             "PO ID: " + poId + "\n" +
@@ -402,115 +552,190 @@ sap.ui.define(
                         );
                         that.onBack();
                     })
-                    .catch(function(err) {
+                    .catch(function(err){
                         MessageBox.error("Error creating one or more PO Items.");
                         console.error(err);
                     });
             },
 
             /* =========================
-            LOAD DATA
+            READ — SEARCH BY PO NUMBER
             ========================= */
 
-            onLoadData: function() {
-                var that = this;
+            onReadSearchByPoNumber: function(){
+                var oModel   = this.getView().getModel();
+                var poNumber = oModel.getProperty("/readSearchPoNumber");
+                var that     = this;
 
-                service.callService("/purchaseorderheader", "GET", {})
-                    .then(function(data) {
-                        var m   = that.getView().getModel();
-                        m.setProperty("/purchaseOrders", data || []);
-                        that.getView().byId("idHeaderTable").bindRows("/purchaseOrders");
-                    })
-                    .catch(function(err) {
-                        MessageBox.error("Error loading PO Headers");
-                        console.error(err);
-                    });
-
-                service.callService("/purchaseorderitem", "GET", {})
-                    .then(function(data) {
-                        var m   = that.getView().getModel();
-                        m.setProperty("/purchaseOrderItems", data || []);
-                        that.getView().byId("idItemTable").bindRows("/purchaseOrderItems");
-                    })
-                    .catch(function(err) {
-                        MessageBox.error("Error loading PO Items");
-                        console.error(err);
-                    });
-            },
-
-            /* =========================
-            UPDATE — SEARCH ITEM
-            ========================= */
-
-            onSearchItem: function() {
-                
-                var oModel = this.getView().getModel();
-                var itemId = oModel.getProperty("/searchItemId");
-
-                if (!itemId || String(itemId).trim() === "") {
-                    MessageBox.error("Please enter an Item ID");
+                // Empty → load all PO headers only (no items)
+                if(!poNumber || String(poNumber).trim() === ""){
+                    service.callService("/purchaseorderheader", "GET", {})
+                        .then(function(data){
+                            var arr = Array.isArray(data) ? data : (data ? [data] : []);
+                            oModel.setProperty("/purchaseOrders", arr);
+                            that.getView().byId("idHeaderTable").bindRows("/purchaseOrders");
+                            that.getView().byId("idHeaderTable").setVisibleRowCount(arr.length || 1);
+                            oModel.setProperty("/showReadResult", true);
+                            oModel.setProperty("/showItemsTable", false);
+                        })
+                        .catch(function(){
+                            MessageBox.error("Failed to load Purchase Orders");
+                        });
                     return;
                 }
 
-                service.callService("/purchaseorderitem/" + itemId, "GET", {})
-                    .then(function(data) {
-                        if (!data || !data.poItemId) {
-                            MessageBox.error("Item not found");
-                            oModel.setProperty("/editItemMode", false);
+                // Specific PO number → show header + items
+                service.callService("/purchaseorderheader/" + poNumber, "GET", {})
+                    .then(function(headerData){
+                        if(!headerData || !headerData.poId){
+                            MessageBox.error("PO Number not found");
+                            oModel.setProperty("/showReadResult", false);
+                            oModel.setProperty("/showItemsTable", false);
                             return;
                         }
-                        oModel.setProperty("/editItemPayload", {
-                            "poItemId":      data.poItemId,
-                            "material":      data.material,
-                            "quantity":      data.quantity,
-                            "uom":           data.uom,
-                            "purchaseOrder": data.purchaseOrder || { "poId": null }
-                        });
-                        oModel.setProperty("/editItemMode", true);
+                        oModel.setProperty("/purchaseOrders", [headerData]);
+                        that.getView().byId("idHeaderTable").bindRows("/purchaseOrders");
+                        that.getView().byId("idHeaderTable").setVisibleRowCount(1);
+
+                        return service.callService("/purchaseorderitem", "GET", {})
+                            .then(function(allItems){
+                                var items = (allItems || []).filter(function(item){
+                                    return item.purchaseOrder &&
+                                           item.purchaseOrder.poId === parseInt(poNumber);
+                                });
+                                oModel.setProperty("/purchaseOrderItems", items);
+                                that.getView().byId("idItemTable").bindRows("/purchaseOrderItems");
+                                that.getView().byId("idItemTable").setVisibleRowCount(items.length || 1);
+                                oModel.setProperty("/showReadResult", true);
+                                oModel.setProperty("/showItemsTable", true);
+                            });
                     })
-                    .catch(function(err) {
-                        MessageBox.error("Item not found");
-                        oModel.setProperty("/editItemMode", false);
+                    .catch(function(err){
+                        MessageBox.error("PO Number not found");
+                        oModel.setProperty("/showReadResult", false);
+                        oModel.setProperty("/showItemsTable", false);
                         console.error(err);
                     });
             },
 
             /* =========================
-            UPDATE — SAVE ITEM
+            UPDATE — SEARCH BY PO NUMBER
             ========================= */
 
-            onUpdateItem: function() {
-                var oModel      = this.getView().getModel();
-                var editPayload = oModel.getProperty("/editItemPayload");
+            onSearchByPoNumber: function(){
+                var oModel   = this.getView().getModel();
+                var poNumber = oModel.getProperty("/searchPoNumber");
+                var that     = this;
 
-                if (!editPayload.quantity=== null || editPayload.quantity === "") {
-                    MessageBox.error("Please enter a valid Quantity");
+                if(!poNumber || String(poNumber).trim() === ""){
+                    MessageBox.error("Please enter a PO Number");
                     return;
                 }
 
-                service.callService(
-                    "/purchaseorderitem/" + editPayload.poItemId,
-                    "PUT",
-                    { "quantity": parseInt(editPayload.quantity) }
-                )
-                .then(function() {
-                    MessageBox.success("PO Item Updated Successfully");
-                    this.onBack();
-                }.bind(this))
-                .catch(function(err) {
-                    MessageBox.error("Error updating PO Item");
-                    console.error(err);
-                });
+                service.callService("/purchaseorderheader/" + poNumber, "GET", {})
+                    .then(function(headerData){
+                        if(!headerData || !headerData.poId){
+                            MessageBox.error("PO Number not found");
+                            oModel.setProperty("/showPoSearchResult", false);
+                            return;
+                        }
+                        oModel.setProperty("/filteredPoHeader", [headerData]);
+
+                        return service.callService("/purchaseorderitem", "GET", {})
+                            .then(function(allItems){
+                                var items = (allItems || []).filter(function(item){
+                                    return item.purchaseOrder &&
+                                           item.purchaseOrder.poId === parseInt(poNumber);
+                                });
+                                oModel.setProperty("/filteredPoItems", items);
+                                oModel.setProperty("/showPoSearchResult", true);
+                                that.getView().byId("updatePoItemsTable").setVisibleRowCount(items.length || 1);
+                                that.getView().byId("updatePoHeaderTable").setVisibleRowCount(1);
+                            });
+                    })
+                    .catch(function(err){
+                        MessageBox.error("PO Number not found");
+                        oModel.setProperty("/showPoSearchResult", false);
+                        console.error(err);
+                    });
             },
 
             /* =========================
-            UPDATE — CANCEL EDIT
+            UPDATE — SAVE
             ========================= */
 
-            onCancelItemEdit: function() {
+            onUpdateItem: function(){
+                var oModel      = this.getView().getModel();
+                var headerArray = oModel.getProperty("/filteredPoHeader");
+                var header      = headerArray && headerArray[0];
+                var items       = oModel.getProperty("/filteredPoItems");
+                var that        = this;
+
+                if(!header || !header.poId){
+                    MessageBox.error("No Purchase Order loaded");
+                    return;
+                }
+
+                var headerPayload = {
+                    "poId":         header.poId,
+                    "orderDate":    header.orderDate,
+                    "deliveryDate": header.deliveryDate,
+                    "vendor":       header.vendor
+                };
+
+                service.callService("/purchaseorderheader", "PUT", headerPayload)
+                    .then(function(){
+                        var chain = items.reduce(function(promiseChain, item){
+                            return promiseChain.then(function(){
+                                return service.callService(
+                                    "/purchaseorderitem/" + item.poItemId,
+                                    "PUT",
+                                    { "quantity": parseInt(item.quantity) }
+                                );
+                            });
+                        }, Promise.resolve());
+                        return chain;
+                    })
+                    .then(function(){
+                        MessageBox.success("Purchase Order updated successfully!");
+                        that.onBack();
+                    })
+                    .catch(function(err){
+                        MessageBox.error("Error updating Purchase Order");
+                        console.error(err);
+                    });
+            },
+
+            /* =========================
+            UPDATE — CANCEL
+            ========================= */
+
+            onCancelItemEdit: function(){
                 var oModel = this.getView().getModel();
-                oModel.setProperty("/editItemMode",  false);
-                oModel.setProperty("/searchItemId",  "");
+                oModel.setProperty("/showPoSearchResult", false);
+                oModel.setProperty("/searchPoNumber",     "");
+                oModel.setProperty("/filteredPoHeader",   null);
+                oModel.setProperty("/filteredPoItems",    []);
+            },
+
+            /* =========================
+            RESET ALL DATA
+            ========================= */
+
+            resetAllData: function(){
+                var oModel = this.getView().getModel();
+                oModel.setProperty("/createPayload", {
+                    "poId":         null,
+                    "orderDate":    null,
+                    "deliveryDate": null,
+                    "vendor":       { "vendorId": null, "name": "" },
+                    "items": [
+                        { "material": "", "quantity": null, "uom": "" },
+                        { "material": "", "quantity": null, "uom": "" },
+                        { "material": "", "quantity": null, "uom": "" }
+                    ]
+                });
+                this.getView().byId("createItemsTable").setVisibleRowCount(3);
                 oModel.setProperty("/editItemPayload", {
                     "poItemId":      null,
                     "material":      "",
@@ -518,33 +743,19 @@ sap.ui.define(
                     "uom":           "",
                     "purchaseOrder": { "poId": null }
                 });
-            },
-
-            /* =========================
-            RESET FORM
-            ========================= */
-
-            resetAllData: function() {
-                var m = this.getView().getModel();
-                m.setProperty("/createPayload", {
-                    "orderDate":    null,
-                    "deliveryDate": null,
-                    "vendor": { "vendorId": null, "name": "" },
-                    "items": [
-                        { "material": "", "quantity": null, "uom": "" }
-                    ]
-                });
-                this.getView().byId("createItemsTable").setVisibleRowCount(1);
-                m.setProperty("/editItemPayload", {
-                    "poItemId":      null,
-                    "material":      "",
-                    "quantity":      null,
-                    "uom":           "",
-                    "purchaseOrder": { "poId": null }
-                });
-                m.setProperty("/editItemMode",  false);
-                m.setProperty("/searchItemId",  "");
+                oModel.setProperty("/editItemMode",       false);
+                oModel.setProperty("/searchItemId",       "");
+                oModel.setProperty("/searchPoNumber",     "");
+                oModel.setProperty("/readSearchPoNumber", "");
+                oModel.setProperty("/filteredPoHeader",   null);
+                oModel.setProperty("/filteredPoItems",    []);
+                oModel.setProperty("/showReadResult",     false);
+                oModel.setProperty("/showItemsTable",     false);
+                oModel.setProperty("/showPoSearchResult", false);
+                oModel.setProperty("/purchaseOrders",     []);
+                oModel.setProperty("/purchaseOrderItems", []);
             }
 
         });
-    });
+    }
+);

@@ -9,10 +9,16 @@
 
     <Page title="Sales Order Management System" showHeader="true" enableScrolling="true">
 
-        <!-- OPERATION SELECTION BUTTONS -->
+        <!-- ═══════════════════════════════════════════ -->
+        <!--           OPERATION SELECTION               -->
+        <!-- ═══════════════════════════════════════════ -->
         <Panel expandable="false" headerText="Select Operation"
             class="sapUiLargeMargin sapUiResponsiveMargin"
             visible="{/showOperationSelector}">
+            
+            <Toolbar class="sapUiSmallMargin">
+                <Button text="Back" type="Default" press="onBackOpScreen" icon="sap-icon://nav-back"/>
+            </Toolbar>
             <VBox alignItems="Center" class="sapUiMediumMargin">
                 <HBox justifyContent="Center" class="sapUiSmallMargin">
                     <Button text="Create"
@@ -43,7 +49,10 @@
         <Panel expandable="false" headerText="Create New Sales Order"
             class="sapUiLargeMargin sapUiResponsiveMargin"
             visible="{/showCreatePanel}">
-
+            
+            <Toolbar class="sapUiSmallMargin">
+                <Button text="Back" type="Default" press="onBack" icon="sap-icon://nav-back"/>
+            </Toolbar>
             <f:SimpleForm id="createCombinedForm"
                 editable="true"
                 layout="ResponsiveGridLayout"
@@ -91,15 +100,16 @@
                 </f:content>
             </f:SimpleForm>
 
+            <!-- Items table — 3 rows by default, no Add Row button -->
             <Panel expandable="false" headerText="Sales Order Items" class="sapUiSmallMargin">
                 <t:Table id="createItemsTable"
                     rows="{/createPayload/items}"
                     selectionMode="None"
-                    visibleRowCount="1"
+                    visibleRowCount="3"
                     rowHeight="48"
                     class="sapUiSmallMargin">
                     <t:columns>
-                        <t:Column width="33%">
+                        <t:Column width="40%">
                             <Label text="Material"/>
                             <t:template>
                                 <HBox alignItems="Center">
@@ -123,20 +133,16 @@
                         <t:Column width="160px">
                             <Label text="UOM"/>
                             <t:template>
-                                <Input value="{uom}" placeholder="Enter unit of measurement"/>
+                                <Input value="{uom}" placeholder="Auto-filled"/>
                             </t:template>
                         </t:Column>
                     </t:columns>
                 </t:Table>
-
-                <Toolbar class="sapUiSmallMargin">
-                    <Button text="Add Row" type="Emphasized" press="onAddItem" icon="sap-icon://add"/>
-                </Toolbar>
             </Panel>
 
             <Toolbar class="sapUiSmallMargin">
                 <Button text="Save" type="Accept" press="onSaveCombined" icon="sap-icon://save"/>
-                <Button text="Back" type="Default" press="onBack" icon="sap-icon://nav-back"/>
+                <!--<Button text="Back" type="Default" press="onBack" icon="sap-icon://nav-back"/>-->
             </Toolbar>
 
         </Panel>
@@ -144,10 +150,17 @@
         <!-- ═══════════════════════════════════════════ -->
         <!--                READ SECTION                 -->
         <!-- ═══════════════════════════════════════════ -->
+        <!--<Toolbar class="sapUiSmallMargin">
+                <Button text="Back" type="Default" press="onBack" icon="sap-icon://nav-back"/>
+        </Toolbar>-->
         <Panel expandable="false" headerText="View All Sales Orders"
             class="sapUiLargeMargin sapUiResponsiveMargin"
             visible="{/showReadPanel}">
 
+            <Toolbar class="sapUiSmallMargin">
+                <Button text="Back" type="Default" press="onBack" icon="sap-icon://nav-back"/>
+            </Toolbar>
+            <!-- SO Number search with F4 help -->
             <f:SimpleForm editable="true" layout="ResponsiveGridLayout"
                 labelSpanXL="3" labelSpanL="3" labelSpanM="4" labelSpanS="12"
                 adjustLabelSpan="false" columnsXL="2" columnsL="1" columnsM="1"
@@ -156,9 +169,14 @@
                     <Label text="SO Number" />
                     <HBox>
                         <Input value="{/readSearchSoNumber}"
-                            placeholder="Enter Sales Order Number"
+                            placeholder="Enter SO Number or use F4"
                             type="Number"
                             width="200px"/>
+                        <Button icon="sap-icon://value-help"
+                            press="onReadSoNumberF4Help"
+                            tooltip="Click to select SO Number (F4)"
+                            width="auto"
+                            class="sapUiSmallMarginBegin"/>
                         <Button text="Search"
                             type="Emphasized"
                             press="onReadSearchBySoNumber"
@@ -168,17 +186,15 @@
                 </f:content>
             </f:SimpleForm>
 
-            <Toolbar class="sapUiSmallMargin">
-                <Button text="Back" type="Default" press="onBack" icon="sap-icon://nav-back"/>
-            </Toolbar>
+            
 
-            <!-- SO Header Table — hidden until search -->
+            <!-- SO Header Table — hidden until Search is clicked -->
             <Panel expandable="false" headerText="Sales Order"
                 class="sapUiSmallMargin"
                 visible="{/showReadResult}">
                 <t:Table id="idHeaderTable"
                     selectionMode="None"
-                    visibleRowCount="1"
+                    visibleRowCount="5"
                     class="sapUiSmallMargin">
                     <t:columns>
                         <t:Column width="120px">
@@ -205,10 +221,10 @@
                 </t:Table>
             </Panel>
 
-            <!-- SO Items Table — hidden until search -->
+            <!-- SO Items Table — only visible when a specific SO number is searched -->
             <Panel expandable="false" headerText="Items"
                 class="sapUiSmallMargin"
-                visible="{/showReadResult}">
+                visible="{/showItemsTable}">
                 <t:Table id="idItemTable"
                     selectionMode="None"
                     visibleRowCount="1"
@@ -247,33 +263,43 @@
             class="sapUiLargeMargin sapUiResponsiveMargin"
             visible="{/showUpdatePanel}">
 
-            <!-- Search by SO Number -->
+            <Toolbar class="sapUiSmallMargin">
+                <Button text="Back" type="Default" press="onBack" icon="sap-icon://nav-back"/>
+            </Toolbar>
+            <!-- SO Number search with F4 help -->
             <f:SimpleForm editable="true" layout="ResponsiveGridLayout"
                 labelSpanXL="3" labelSpanL="3" labelSpanM="4" labelSpanS="12"
                 adjustLabelSpan="false" columnsXL="2" columnsL="1" columnsM="1"
                 singleContainerFullSize="false">
                 <f:content>
                     <Label text="SO Number *" />
-                    <Input id="updateSearchSoId"
-                        value="{/searchSoNumber}"
-                        placeholder="Enter SO Number to search"
-                        type="Number"
-                        required="true"/>
+                    <HBox>
+                        <Input id="updateSearchSoId"
+                            value="{/searchSoNumber}"
+                            placeholder="Enter SO Number or use F4"
+                            type="Number"
+                            width="200px"
+                            required="true"/>
+                        <Button icon="sap-icon://value-help"
+                            press="onUpdateSoNumberF4Help"
+                            tooltip="Click to select SO Number (F4)"
+                            width="auto"
+                            class="sapUiSmallMarginBegin"/>
+                        <Button text="Search &amp; Load"
+                            type="Emphasized"
+                            press="onSearchBySoNumber"
+                            icon="sap-icon://search"
+                            class="sapUiSmallMarginBegin"/>
+                    </HBox>
                 </f:content>
             </f:SimpleForm>
-
-            <Toolbar class="sapUiSmallMargin">
-                <Button text="Search &amp; Load" type="Emphasized"
-                    press="onSearchBySoNumber" icon="sap-icon://search"/>
-                <Button text="Back" type="Default" press="onBack" icon="sap-icon://nav-back"/>
-            </Toolbar>
 
             <!-- Result Panel — shows only after successful search -->
             <Panel expandable="false" visible="{/showSoSearchResult}"
                 headerText="Edit Sales Order"
                 class="sapUiLargeMargin sapUiResponsiveMargin">
 
-                <!-- Header table — rows bound to array /filteredSoHeader, relative paths inside template -->
+                <!-- Header table with editable fields + F4 for customer -->
                 <Panel expandable="false" headerText="Sales Order" class="sapUiSmallMargin">
                     <t:Table id="updateHeaderTable"
                         rows="{/filteredSoHeader}"
@@ -294,7 +320,6 @@
                                     <DatePicker value="{dateOfOrder}"
                                         displayFormat="dd-MM-yyyy"
                                         valueFormat="yyyy-MM-dd"
-                                        placeholder="e.g. 18-03-2026"
                                         width="100%"/>
                                 </t:template>
                             </t:Column>
@@ -304,7 +329,6 @@
                                     <DatePicker value="{dateOfDelivery}"
                                         displayFormat="dd-MM-yyyy"
                                         valueFormat="yyyy-MM-dd"
-                                        placeholder="e.g. 25-03-2026"
                                         width="100%"/>
                                 </t:template>
                             </t:Column>
@@ -347,9 +371,9 @@
                             <t:Column width="200px">
                                 <Label text="Quantity"/>
                                 <t:template>
-                                    <Input value="{quantity}" type="Number" 
-                                    placeholder="Enter quantity"
-                                    width="100%"/>
+                                    <Input value="{quantity}" type="Number"
+                                        placeholder="Enter quantity"
+                                        width="100%"/>
                                 </t:template>
                             </t:Column>
                             <t:Column width="120px">

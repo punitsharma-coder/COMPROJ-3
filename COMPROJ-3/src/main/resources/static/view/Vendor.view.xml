@@ -8,198 +8,246 @@
           controllerName="punit.controller.Vendor">
 
     <Page title="Vendor Management System" showHeader="true" enableScrolling="true">
-        
-        <!-- OPERATION SELECTION BUTTONS -->
-        <Panel expandable="false" headerText="Select Operation" class="sapUiLargeMargin sapUiResponsiveMargin" visible="{/showOperationSelector}">
+
+        <!-- ═══════════════════════════════════════════ -->
+        <!--           OPERATION SELECTION               -->
+        <!-- ═══════════════════════════════════════════ -->
+        <Panel expandable="false" headerText="Select Operation"
+            class="sapUiLargeMargin sapUiResponsiveMargin"
+            visible="{/showOperationSelector}">
+            <Toolbar class="sapUiSmallMargin">
+                <Button text="Back" type="Default" press="onBackOpScreen" icon="sap-icon://nav-back"/>
+            </Toolbar>
             <VBox alignItems="Center" class="sapUiMediumMargin">
                 <HBox justifyContent="Center" class="sapUiSmallMargin">
-                    <Button text="Create" 
-                            type="Accept" 
-                            press="onSelectCreate" 
-                            icon="sap-icon://add"
-                            width="150px"
-                            class="sapUiSmallMargin"/>
-                    <Button text="Read" 
-                            type="Emphasized" 
-                            press="onSelectRead" 
-                            icon="sap-icon://search"
-                            width="150px"
-                            class="sapUiSmallMargin"/>
-                    <Button text="Update" 
-                            type="Information" 
-                            press="onSelectUpdate" 
-                            icon="sap-icon://edit"
-                            width="150px"
-                            class="sapUiSmallMargin"/>
-                    <Button text="Delete" 
-                            type="Reject" 
-                            press="onSelectDelete" 
-                            icon="sap-icon://delete"
-                            width="150px"
-                            class="sapUiSmallMargin"/>
+                    <Button text="Create"
+                        type="Accept"
+                        press="onSelectCreate"
+                        icon="sap-icon://add"
+                        width="150px"
+                        class="sapUiSmallMargin"/>
+                    <Button text="Read"
+                        type="Emphasized"
+                        press="onSelectRead"
+                        icon="sap-icon://search"
+                        width="150px"
+                        class="sapUiSmallMargin"/>
+                    <Button text="Update"
+                        type="Information"
+                        press="onSelectUpdate"
+                        icon="sap-icon://edit"
+                        width="150px"
+                        class="sapUiSmallMargin"/>
+                    <Button text="Delete"
+                        type="Reject"
+                        press="onSelectDelete"
+                        icon="sap-icon://delete"
+                        width="150px"
+                        class="sapUiSmallMargin"/>
                 </HBox>
             </VBox>
         </Panel>
 
-        <!-- CREATE SECTION -->
-        <Panel expandable="false" headerText="Create New Vendor" class="sapUiLargeMargin sapUiResponsiveMargin" visible="{/showCreatePanel}">
+        <!-- ═══════════════════════════════════════════ -->
+        <!--                CREATE SECTION               -->
+        <!-- ═══════════════════════════════════════════ -->
+        <Panel expandable="false" headerText="Create New Vendor"
+            class="sapUiLargeMargin sapUiResponsiveMargin"
+            visible="{/showCreatePanel}">
+
+            <Toolbar class="sapUiSmallMargin">
+                <Button text="Back" type="Default" press="onBack" icon="sap-icon://nav-back"/>
+            </Toolbar>
             <f:SimpleForm id="createForm"
                 editable="true"
                 layout="ResponsiveGridLayout"
-                labelSpanXL="3"
-                labelSpanL="3"
-                labelSpanM="4"
-                labelSpanS="12"
+                labelSpanXL="3" labelSpanL="3" labelSpanM="4" labelSpanS="12"
                 adjustLabelSpan="false"
-                columnsXL="2"
-                columnsL="1"
-                columnsM="1"
+                columnsXL="2" columnsL="1" columnsM="1"
                 singleContainerFullSize="false">
                 <f:content>
                     <Label text="Vendor Name *" />
-                    <Input id="createName" 
-                           value="{/postPayload/name}" 
-                           placeholder="Enter vendor name"
-                           required="true"/>
-                    
+                    <Input id="createName"
+                        value="{/postPayload/name}"
+                        placeholder="Enter vendor name"
+                        required="true"/>
+
                     <Label text="City *" />
-                    <Input value="{/postPayload/city}" 
-                           placeholder="Enter city"
-                           required="true"/>
-                    
+                    <Input value="{/postPayload/city}"
+                        placeholder="Enter city"
+                        required="true"/>
+
                     <Label text="State *" />
-                    <Input value="{/postPayload/state}" 
-                           placeholder="Enter state"
-                           required="true"/>
-                    
+                    <Input value="{/postPayload/state}"
+                        placeholder="Enter state"
+                        required="true"/>
+
                     <Label text="Phone *" />
-                    <Input value="{/postPayload/phone}" 
-                           placeholder="Enter phone number"
-                           required="true"/>
+                    <Input value="{/postPayload/phone}"
+                        placeholder="Enter phone number"
+                        required="true"/>
                 </f:content>
             </f:SimpleForm>
-            
+
             <Toolbar class="sapUiSmallMargin">
                 <Button text="Save" type="Accept" press="onSave" icon="sap-icon://save"/>
-                <Button text="Back" type="Default" press="onBack" icon="sap-icon://nav-back"/>
+                <!--<Button text="Back" type="Default" press="onBack" icon="sap-icon://nav-back"/>-->
             </Toolbar>
         </Panel>
 
-        <!-- READ SECTION -->
-        <Panel expandable="false" headerText="View All Vendors" class="sapUiLargeMargin sapUiResponsiveMargin" visible="{/showReadPanel}">
+        <!-- ═══════════════════════════════════════════ -->
+        <!--                READ SECTION                 -->
+        <!-- ═══════════════════════════════════════════ -->
+        <Panel expandable="false" headerText="View All Vendors"
+            class="sapUiLargeMargin sapUiResponsiveMargin"
+            visible="{/showReadPanel}">
+
             <Toolbar class="sapUiSmallMargin">
-                <Button text="Load Data" type="Default" press="onLoadData" icon="sap-icon://refresh"/>
                 <Button text="Back" type="Default" press="onBack" icon="sap-icon://nav-back"/>
             </Toolbar>
 
-            <t:Table id="idTable" 
-                     selectionMode="None" 
-                     visibleRowCount="10"
-                     class="sapUiSmallMargin">
-                <t:columns>
-                    <t:Column width="80px">
-                        <Label text="Vendor ID"/>
-                        <t:template>
-                            <Text text="{vendorId}"/>
-                        </t:template>
-                    </t:Column>
-                    <t:Column>
-                        <Label text="Name"/>
-                        <t:template>
-                            <Text text="{name}"/>
-                        </t:template>
-                    </t:Column>
-                    <t:Column>
-                        <Label text="City"/>
-                        <t:template>
-                            <Text text="{city}"/>
-                        </t:template>
-                    </t:Column>
-                    <t:Column>
-                        <Label text="State"/>
-                        <t:template>
-                            <Text text="{state}"/>
-                        </t:template>
-                    </t:Column>
-                    <t:Column>
-                        <Label text="Phone"/>
-                        <t:template>
-                            <Text text="{phone}"/>
-                        </t:template>
-                    </t:Column>
-                </t:columns>
-            </t:Table>
+            <!-- Vendor ID search with F4 help -->
+            <f:SimpleForm editable="true" layout="ResponsiveGridLayout"
+                labelSpanXL="3" labelSpanL="3" labelSpanM="4" labelSpanS="12"
+                adjustLabelSpan="false" columnsXL="2" columnsL="1" columnsM="1"
+                singleContainerFullSize="false">
+                <f:content>
+                    <Label text="Vendor ID" />
+                    <HBox>
+                        <Input value="{/readSearchVendorId}"
+                            placeholder="Enter Vendor ID or use F4"
+                            type="Number"
+                            width="200px"/>
+                        <Button icon="sap-icon://value-help"
+                            press="onReadVendorF4Help"
+                            tooltip="Click to select Vendor (F4)"
+                            width="auto"
+                            class="sapUiSmallMarginBegin"/>
+                        <Button text="Search"
+                            type="Emphasized"
+                            press="onReadSearchByVendorId"
+                            icon="sap-icon://search"
+                            class="sapUiSmallMarginBegin"/>
+                    </HBox>
+                </f:content>
+            </f:SimpleForm>
+
+            <!-- Vendor Table — hidden until Search is clicked -->
+            <Panel expandable="false" headerText="Vendors"
+                class="sapUiSmallMargin"
+                visible="{/showReadResult}">
+                <t:Table id="idTable"
+                    selectionMode="None"
+                    visibleRowCount="5"
+                    class="sapUiSmallMargin">
+                    <t:columns>
+                        <t:Column width="80px">
+                            <Label text="Vendor ID"/>
+                            <t:template><Text text="{vendorId}"/></t:template>
+                        </t:Column>
+                        <t:Column>
+                            <Label text="Name"/>
+                            <t:template><Text text="{name}"/></t:template>
+                        </t:Column>
+                        <t:Column>
+                            <Label text="City"/>
+                            <t:template><Text text="{city}"/></t:template>
+                        </t:Column>
+                        <t:Column>
+                            <Label text="State"/>
+                            <t:template><Text text="{state}"/></t:template>
+                        </t:Column>
+                        <t:Column>
+                            <Label text="Phone"/>
+                            <t:template><Text text="{phone}"/></t:template>
+                        </t:Column>
+                    </t:columns>
+                </t:Table>
+            </Panel>
+
         </Panel>
 
-        <!-- UPDATE SECTION -->
-        <Panel expandable="false" headerText="Update Vendor" class="sapUiLargeMargin sapUiResponsiveMargin" visible="{/showUpdatePanel}">
+        <!-- ═══════════════════════════════════════════ -->
+        <!--               UPDATE SECTION                -->
+        <!-- ═══════════════════════════════════════════ -->
+        <Panel expandable="false" headerText="Update Vendor"
+            class="sapUiLargeMargin sapUiResponsiveMargin"
+            visible="{/showUpdatePanel}">
+
+            <Toolbar class="sapUiSmallMargin">
+                <Button text="Back" type="Default" press="onBack" icon="sap-icon://nav-back"/>
+            </Toolbar>
+
+            <!-- Vendor ID search with F4 help -->
             <f:SimpleForm id="editSearchForm"
                 editable="true"
                 layout="ResponsiveGridLayout"
-                labelSpanXL="3"
-                labelSpanL="3"
-                labelSpanM="4"
-                labelSpanS="12"
+                labelSpanXL="3" labelSpanL="3" labelSpanM="4" labelSpanS="12"
                 adjustLabelSpan="false"
-                columnsXL="2"
-                columnsL="1"
-                columnsM="1"
+                columnsXL="2" columnsL="1" columnsM="1"
                 singleContainerFullSize="false">
                 <f:content>
-                    <Label text="Enter Vendor ID *" />
-                    <Input id="searchVendorId" 
-                           value="{/searchVendorId}" 
-                           placeholder="Enter vendor ID to search"
-                           required="true"/>
+                    <Label text="Vendor ID *" />
+                    <HBox>
+                        <Input id="searchVendorId"
+                            value="{/searchVendorId}"
+                            placeholder="Enter Vendor ID or use F4"
+                            type="Number"
+                            width="200px"
+                            required="true"/>
+                        <Button icon="sap-icon://value-help"
+                            press="onUpdateVendorF4Help"
+                            tooltip="Click to select Vendor (F4)"
+                            width="auto"
+                            class="sapUiSmallMarginBegin"/>
+                        <Button text="Search &amp; Load"
+                            type="Emphasized"
+                            press="onEditVendor"
+                            icon="sap-icon://search"
+                            class="sapUiSmallMarginBegin"/>
+                    </HBox>
                 </f:content>
             </f:SimpleForm>
-            
-            <Toolbar class="sapUiSmallMargin">
-                <Button text="Search &amp; Load" type="Emphasized" press="onEditVendor" icon="sap-icon://search"/>
-                <Button text="Back" type="Default" press="onBack" icon="sap-icon://nav-back"/>
-            </Toolbar>
 
-            <!-- Edit Form - Visible only in edit mode -->
-            <Panel expandable="false" visible="{/editMode}" headerText="Edit Vendor Details" class="sapUiLargeMargin sapUiResponsiveMargin">
+            <!-- Edit Form — visible only after search -->
+            <Panel expandable="false" visible="{/editMode}"
+                headerText="Edit Vendor Details"
+                class="sapUiLargeMargin sapUiResponsiveMargin">
+
                 <f:SimpleForm id="editForm"
                     editable="true"
                     layout="ResponsiveGridLayout"
-                    labelSpanXL="3"
-                    labelSpanL="3"
-                    labelSpanM="4"
-                    labelSpanS="12"
+                    labelSpanXL="3" labelSpanL="3" labelSpanM="4" labelSpanS="12"
                     adjustLabelSpan="false"
-                    columnsXL="2"
-                    columnsL="1"
-                    columnsM="1"
+                    columnsXL="2" columnsL="1" columnsM="1"
                     singleContainerFullSize="false">
                     <f:content>
                         <Label text="Vendor ID" />
                         <Text text="{/editPayload/vendorId}" />
-                        
+
                         <Label text="Vendor Name *" />
-                        <Input id="editName" 
-                               value="{/editPayload/name}" 
-                               placeholder="Enter vendor name"
-                               required="true"/>
-                        
+                        <Input id="editName"
+                            value="{/editPayload/name}"
+                            placeholder="Enter vendor name"
+                            required="true"/>
+
                         <Label text="City *" />
-                        <Input value="{/editPayload/city}" 
-                               placeholder="Enter city"
-                               required="true"/>
-                        
+                        <Input value="{/editPayload/city}"
+                            placeholder="Enter city"
+                            required="true"/>
+
                         <Label text="State *" />
-                        <Input value="{/editPayload/state}" 
-                               placeholder="Enter state"
-                               required="true"/>
-                        
+                        <Input value="{/editPayload/state}"
+                            placeholder="Enter state"
+                            required="true"/>
+
                         <Label text="Phone *" />
-                        <Input value="{/editPayload/phone}" 
-                               placeholder="Enter phone number"
-                               required="true"/>
+                        <Input value="{/editPayload/phone}"
+                            placeholder="Enter phone number"
+                            required="true"/>
                     </f:content>
                 </f:SimpleForm>
-                
+
                 <Toolbar class="sapUiSmallMargin">
                     <Button text="Update" type="Accept" press="onUpdateVendor" icon="sap-icon://save"/>
                     <Button text="Cancel" type="Reject" press="onCancelEdit" icon="sap-icon://cancel"/>
@@ -207,55 +255,82 @@
             </Panel>
         </Panel>
 
-        <!-- DELETE SECTION -->
-        <Panel expandable="false" headerText="Delete Vendor" class="sapUiLargeMargin sapUiResponsiveMargin" visible="{/showDeletePanel}">
+        <!-- ═══════════════════════════════════════════ -->
+        <!--               DELETE SECTION                -->
+        <!-- ═══════════════════════════════════════════ -->
+        <Panel expandable="false" headerText="Delete Vendor"
+            class="sapUiLargeMargin sapUiResponsiveMargin"
+            visible="{/showDeletePanel}">
+
             <Toolbar class="sapUiSmallMargin">
-                <Button text="Load Data" type="Default" press="onLoadDataForDelete" icon="sap-icon://refresh"/>
                 <Button text="Back" type="Default" press="onBack" icon="sap-icon://nav-back"/>
             </Toolbar>
 
-            <t:Table id="idDeleteTable" 
-                     selectionMode="MultiToggle" 
-                     selectionBehavior="Row"
-                     visibleRowCount="10"
-                     class="sapUiSmallMargin">
+            <!-- Vendor ID search with F4 help -->
+            <f:SimpleForm editable="true" layout="ResponsiveGridLayout"
+                labelSpanXL="3" labelSpanL="3" labelSpanM="4" labelSpanS="12"
+                adjustLabelSpan="false" columnsXL="2" columnsL="1" columnsM="1"
+                singleContainerFullSize="false">
+                <f:content>
+                    <Label text="Vendor ID" />
+                    <HBox>
+                        <Input value="{/deleteSearchVendorId}"
+                            placeholder="Enter Vendor ID or use F4"
+                            type="Number"
+                            width="200px"/>
+                        <Button icon="sap-icon://value-help"
+                            press="onDeleteVendorF4Help"
+                            tooltip="Click to select Vendor (F4)"
+                            width="auto"
+                            class="sapUiSmallMarginBegin"/>
+                        <Button text="Search"
+                            type="Emphasized"
+                            press="onDeleteSearchByVendorId"
+                            icon="sap-icon://search"
+                            class="sapUiSmallMarginBegin"/>
+                    </HBox>
+                </f:content>
+            </f:SimpleForm>
+
+            <!-- Delete table — shown after search -->
+            
+            <Panel expandable="false" headerText="vendor"
+                class="sapUiSmallMargin" visible="{/showDeleteResult}">
+                <t:Table id="idDeleteTable"
+                selectionMode="MultiToggle"
+                selectionBehavior="Row"
+                visibleRowCount="5"
+                class="sapUiSmallMargin">
                 <t:columns>
                     <t:Column width="80px">
                         <Label text="Vendor ID"/>
-                        <t:template>
-                            <Text text="{vendorId}"/>
-                        </t:template>
+                        <t:template><Text text="{vendorId}"/></t:template>
                     </t:Column>
                     <t:Column>
                         <Label text="Name"/>
-                        <t:template>
-                            <Text text="{name}"/>
-                        </t:template>
+                        <t:template><Text text="{name}"/></t:template>
                     </t:Column>
                     <t:Column>
                         <Label text="City"/>
-                        <t:template>
-                            <Text text="{city}"/>
-                        </t:template>
+                        <t:template><Text text="{city}"/></t:template>
                     </t:Column>
                     <t:Column>
                         <Label text="State"/>
-                        <t:template>
-                            <Text text="{state}"/>
-                        </t:template>
+                        <t:template><Text text="{state}"/></t:template>
                     </t:Column>
                     <t:Column>
                         <Label text="Phone"/>
-                        <t:template>
-                            <Text text="{phone}"/>
-                        </t:template>
+                        <t:template><Text text="{phone}"/></t:template>
                     </t:Column>
                 </t:columns>
             </t:Table>
 
             <Toolbar class="sapUiSmallMargin">
-                <Button text="Delete Selected" type="Reject" press="onDeleteSelected" icon="sap-icon://delete"/>
+                <Button text="Delete Selected" type="Reject"
+                    press="onDeleteSelected" icon="sap-icon://delete"/>
             </Toolbar>
+            </Panel>
+
         </Panel>
 
     </Page>
